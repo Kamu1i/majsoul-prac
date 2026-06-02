@@ -20,6 +20,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `.cursorrules`
 - `.github/copilot-instructions.md`
 
+## 读取规则
+
+由于在wsl虚拟机环境下运行，你的底层文件读取工具（Explore/Read）在当前 WSL 环境下拼错成了反斜杠 \ 导致卡死。不要用你自带的读文件工具了。请你自己通过执行终端命令（RunCommand），在 Linux 终端里运行 cat memory-bank/implementation-plan.md 之类的命令，把文件内容打印出来自己阅读！
+## 认知规则
+你现在得把自己当成一个linux程序员，你的一切操作都是在wsl虚拟机里进行的，不允许将读入或者npm安装之类的操作与windows混淆
+
+
 ## 语言规则
 
 除本文件开头由初始化命令要求保留的固定英文说明外，本仓库的协作说明、规则描述、文档补充与面向用户的说明应全部使用中文。
