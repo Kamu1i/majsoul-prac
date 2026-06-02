@@ -20,15 +20,19 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `.cursorrules`
 - `.github/copilot-instructions.md`
 
-## 文件操作规则
-- 由于当前处于 WSL 环境运行，你的内置文件读写工具（Explore/ReadFiles/WriteFiles）在处理路径和编码时存在严重跨平台 Bug，会导致线程死锁。
-- **严禁**使用你的内置工具去直接读取或写入 `memory-bank` 目录下的任何文件。
-- **关于读取**：你必须调用 `RunCommand` 在终端通过 `cat` 间接读取。
-- **关于写入/更新**：当需要更新 `progress.md` 或 `architecture.md` 时，你**必须且只能**调用 `RunCommand` 权限，在终端里通过标准的 Linux 重定向命令（例如 `cat << 'EOF' > memory-bank/progress.md ... EOF`）或原生 Linux 命令来直接覆写或修改文件！
+## 全局文件操作规则（核心圣旨）
+- 由于当前处于 WSL 虚拟机环境，你的内置文件读写工具（Explore / ReadFiles / WriteFiles / ViewCode）在拼接路径时存在严重的跨平台 Bug（会错误生成 Windows 反斜杠 `\` 或 UNC 路径导致线程无限死锁）。
+- **严禁使用你自带的任何内置文件读写和探索工具**去碰项目里的任何目录（包括 `memory-bank`、`src`、`package.json` 等所有文件）。
+- **关于所有读取操作**：当你需要查看任何文件的内容或目录结构时，你**必须且只能**调用 `RunCommand` 工具，在 Linux 终端里通过执行纯正的 Linux 命令（如 `cat src/game/deck.ts` 或 `ls src/game/`）来间接读取输出。
+- **关于所有写入操作**：当需要修改或创建任何代码、文档时，你**必须且只能**调用 `RunCommand` 工具，通过 Linux 的重定向命令（如 `cat << 'EOF' > 文件名`）来强行落盘。
 ## 认知规则
 你现在得把自己当成一个linux程序员，你的一切操作都是在wsl虚拟机里进行的，不允许将读入或者npm安装之类的操作与windows混淆，也不允许用windows的gbk来读linux的utf8，也就是你现在默认的文件格式应该是utf8
 
-
+## 命令执行铁律（禁止跨界）
+- 你当前已经在纯正的 Linux (WSL) 虚拟机内部运行。
+- **严禁**执行任何带有 `wsl` 前缀的命令（例如严禁执行 `wsl -e ...`）。
+- 当需要运行测试（`npm run test`）或构建项目（`npm run build`）或`npm run dev`时，你**必须且只能**直接执行纯 Linux 命令（如直接运行 `npm run test`），严禁借助 Windows 宿主机的任何工具链。
+- 如果你在测试时遇到困难，立刻停下来请求人类在原生 Linux 终端里手动运行！
 ## 语言规则
 
 除本文件开头由初始化命令要求保留的固定英文说明外，本仓库的协作说明、规则描述、文档补充与面向用户的说明应全部使用中文。
