@@ -53,3 +53,31 @@
 - 第 3 步应定义基础牌数据模型，但不要把牌、牌山、胡牌或计分逻辑放回 `src/main.ts`。
 - `src/main.ts` 应继续保持轻量，只作为模块连接入口。
 
+## 2026-06-02：完成第 3 步，定义基础牌数据模型
+
+已完成 `memory-bank/implementation-plan.md` 中的第 3 步：定义基础牌数据模型。
+
+本次完成内容：
+
+- 新增 `src/game/tile.ts`，定义当前项目允许使用的 12 种牌：一索至九索、白、发、中。
+- 在 `src/game/tile.ts` 中定义 `TileSuit`、`SouzuRank`、`DragonValue`、`SouzuTile`、`DragonTile` 和 `Tile` 类型。
+- 为每种牌提供稳定的 `id`、展示用 `label` 和排序用 `sortOrder`。
+- 导出 `allowedTiles` 和 `tileIds`，作为后续牌池生成、手牌排序和规则判断的基础数据来源。
+- 导出 `compareTiles()`，用于确定性排序。
+- 导出 `isSameTile()`，用于按稳定 ID 判断两张牌是否为同一种牌。
+- 导出 `getTileById()`，用于根据稳定 ID 获取牌定义。
+- 新增 `src/game/tile.test.ts`，覆盖允许牌数量、允许牌内容、非法牌排除、同牌比较和排序规则。
+- 修复一次 TypeScript 模板字符串类型推断问题：将由 `map()` 动态生成牌定义改为显式常量数组，保证 `id` 被推断为精确字面量类型。
+
+验证结果：
+
+- 用户已确认第 3 步测试通过。
+- 用户已确认 `npm run build` 通过。
+
+后续注意事项：
+
+- 在用户明确要求前，不开始第 4 步。
+- 第 4 步应基于 `allowedTiles` 生成完整牌池，每种允许牌 4 张，总数 48 张。
+- 第 4 步应将牌池生成与洗牌逻辑分离；不要提前实现洗牌能力。
+- `src/main.ts` 仍不应引入牌池、洗牌、胡牌或计分逻辑。
+
