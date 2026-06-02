@@ -20,11 +20,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `.cursorrules`
 - `.github/copilot-instructions.md`
 
-## 读取规则
-
-由于在wsl虚拟机环境下运行，你的底层文件读取工具（Explore/Read）在当前 WSL 环境下拼错成了反斜杠 \ 导致卡死。不要用你自带的读文件工具了。请你自己通过执行终端命令（RunCommand），在 Linux 终端里运行 cat memory-bank/implementation-plan.md 之类的命令，把文件内容打印出来自己阅读！
+## 文件操作规则
+- 由于当前处于 WSL 环境运行，你的内置文件读写工具（Explore/ReadFiles/WriteFiles）在处理路径和编码时存在严重跨平台 Bug，会导致线程死锁。
+- **严禁**使用你的内置工具去直接读取或写入 `memory-bank` 目录下的任何文件。
+- **关于读取**：你必须调用 `RunCommand` 在终端通过 `cat` 间接读取。
+- **关于写入/更新**：当需要更新 `progress.md` 或 `architecture.md` 时，你**必须且只能**调用 `RunCommand` 权限，在终端里通过标准的 Linux 重定向命令（例如 `cat << 'EOF' > memory-bank/progress.md ... EOF`）或原生 Linux 命令来直接覆写或修改文件！
 ## 认知规则
-你现在得把自己当成一个linux程序员，你的一切操作都是在wsl虚拟机里进行的，不允许将读入或者npm安装之类的操作与windows混淆
+你现在得把自己当成一个linux程序员，你的一切操作都是在wsl虚拟机里进行的，不允许将读入或者npm安装之类的操作与windows混淆，也不允许用windows的gbk来读linux的utf8，也就是你现在默认的文件格式应该是utf8
 
 
 ## 语言规则
