@@ -187,3 +187,39 @@
 - 第 8 步初始化新对局时可以复用 `createTilePool()`、`shuffleTilePool()` 和 `dealInitialHands()`，避免在对局状态中重复发牌逻辑。
 - `dealInitialHands()` 当前只接收外部传入的牌山，不负责创建牌池或洗牌；这让测试可以传入固定牌山，也让后续对局初始化自行决定随机来源。
 - `src/main.ts` 仍不应引入发牌、胡牌或计分逻辑。
+
+## 2026-06-03：完成第 8 步，定义完整对局状态
+
+已完成 `memory-bank/implementation-plan.md` 中的第 8 步：定义完整对局状态。
+
+本次完成内容：
+
+- 更新 `src/game/game-state.ts`，将原先的初始化占位状态扩展为完整对局状态结构。
+- 在 `src/game/game-state.ts` 中扩展 `GameStatus`，包含：
+  - `not-started`：未开始。
+  - `player-turn`：玩家回合。
+  - `computer-turn`：电脑回合。
+  - `ended`：已结束。
+- 在 `src/game/game-state.ts` 中新增 `Actor`，用于统一表示当前行动方、胡牌方和放铳方，目前包含 `player` 与 `computer`。
+- 在 `src/game/game-state.ts` 中新增 `WinMethod`，用于表示后续胡牌方式，目前包含 `ron` 与 `tsumo`。
+- 在 `src/game/game-state.ts` 中新增 `GameEndResult`，用于记录后续和牌或流局结束结果。
+- 在 `src/game/game-state.ts` 中新增 `DiscardRecord`，用于记录最后打出的实体牌与打牌者。
+- `GameState` 现在包含玩家状态、电脑状态、牌山、当前行动方、最后打出的牌、结束结果、海底标记和河底标记。
+- 新增 `createNewGameState(randomSource?)`，负责创建牌池、洗牌、发牌并初始化一局新对局。
+- `createNewGameState()` 复用 `createTilePool()`、`shuffleTilePool()` 和 `dealInitialHands()`，没有重复实现牌池、洗牌或发牌逻辑。
+- `createInitialGameState()` 现在返回一份新对局状态，用于继续兼容当前入口和渲染层。
+- 新增 `src/game/game-state.test.ts`，覆盖新对局初始化后的双方状态、剩余牌山、当前行动方、海底/河底标记、最后打出的牌和对局阶段。
+- 更新 `src/main.test.ts`，适配入口现在导出已初始化的新对局状态。
+
+验证结果：
+
+- 用户已确认第 8 步测试通过。
+
+后续注意事项：
+
+- 在用户明确要求前，不开始第 9 步。
+- 第 9 步应实现摸牌动作：当前行动方从牌山摸一张牌，牌山减少 1，并在摸到牌山最后一张时记录海底标记。
+- 当牌山为空时，摸牌动作不应继续摸牌，而应进入流局结束状态。
+- 第 9 步应复用本次新增的 `currentActor`、`wall`、`isHaitei` 和 `endResult` 字段，不要在 UI 层实现摸牌或流局逻辑。
+- `src/game/game-state.ts` 已成为对局状态聚合模块，但仍应只负责状态结构和新对局初始化；后续摸牌、打牌、回合切换等动作可视复杂度拆到独立流程模块，避免形成巨文件。
+
