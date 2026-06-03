@@ -16,6 +16,7 @@ export type GameEndResult = Readonly<{
   loser: Actor | null
   method: WinMethod
   yaku: readonly Yaku[]
+  isHaitei: boolean
   isHoutei: boolean
 }> | Readonly<{
   type: 'exhaustive-draw'

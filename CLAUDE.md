@@ -21,18 +21,17 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `.github/copilot-instructions.md`
 
 ## 全局文件操作规则（核心圣旨）
-- 由于当前处于 WSL 虚拟机环境，你的内置文件读写工具（Explore / ReadFiles / WriteFiles / ViewCode）在拼接路径时存在严重的跨平台 Bug（会错误生成 Windows 反斜杠 `\` 或 UNC 路径导致线程无限死锁）。
-- **严禁使用你自带的任何内置文件读写和探索工具**去碰项目里的任何目录（包括 `memory-bank`、`src`、`package.json` 等所有文件）。
-- **关于所有读取操作**：当你需要查看任何文件的内容或目录结构时，你**必须且只能**调用 `RunCommand` 工具，在 Linux 终端里通过执行纯正的 Linux 命令（如 `cat src/game/deck.ts` 或 `ls src/game/`）来间接读取输出。
-- **关于所有写入操作**：当需要修改或创建任何代码、文档时，你**必须且只能**调用 `RunCommand` 工具，通过 Linux 的重定向命令（如 `cat << 'EOF' > 文件名`）来强行落盘。
+本项目的绝对根目录是标准的 Linux 路径：/home/kamuii/code/majsoul。                                                                                                                                                      接下来所有文件的读取、写入、更新，禁止带有任何 \\、\、wsl.localhost 或 Windows                              盘符。你必须全部全自动完成，并且在调用内置工具时，必须且只能使用纯 Linux 相对路径（例如 src/game/xxxx.ts
+  或 memory-bank/progress.md）
 ## 认知规则
 你现在得把自己当成一个linux程序员，你的一切操作都是在wsl虚拟机里进行的，不允许将读入或者npm安装之类的操作与windows混淆，也不允许用windows的gbk来读linux的utf8，也就是你现在默认的文件格式应该是utf8
 
-<!-- ## 命令执行铁律（禁止跨界）
-- 你当前已经在纯正的 Linux (WSL) 虚拟机内部运行。
-- **严禁**执行任何带有 `wsl` 前缀的命令（例如严禁执行 `wsl -e ...`）。
-- 当需要运行测试（`npm run test`）或构建项目（`npm run build`）或`npm run dev`时，你**必须且只能**直接执行纯 Linux 命令（如直接运行 `npm run test`），严禁借助 Windows 宿主机的任何工具链。
-- 如果你在测试时遇到困难，立刻停下来请求人类在原生 Linux 终端里手动运行！ -->
+## 内置读写工具使用规范
+用内置工具，应该尽量：
+    - 使用 //wsl.localhost/Ubuntu/home/kamuii/code/majsoul/...
+    - 避免不必要的 offset 分段读
+    - 已读过的文件不要反复重读
+    - 修改文件优先用 Edit/Write，不要用追加 >>
 
 
 ## 语言规则

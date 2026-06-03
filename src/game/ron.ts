@@ -128,6 +128,7 @@ export function declareRon(state: GameState, winner: Actor): GameState {
       loser: state.lastDiscard.actor,
       method: 'ron',
       yaku: ronEvaluation.yaku,
+      isHaitei: false,
       isHoutei: state.isHoutei,
     },
   }

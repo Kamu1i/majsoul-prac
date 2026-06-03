@@ -2,6 +2,7 @@ import { chooseComputerDiscardTile } from './ai'
 import { drawTile } from './draw'
 import type { GameState } from './game-state'
 import { discardTileAndSwitchTurn } from './turn'
+import { resolveComputerTsumoAfterDraw } from './tsumo'
 
 export function playComputerTurn(state: GameState): GameState {
   if (state.status !== 'computer-turn' || state.currentActor !== 'computer') {
@@ -14,11 +15,17 @@ export function playComputerTurn(state: GameState): GameState {
     return stateAfterDraw
   }
 
-  const tileToDiscard = chooseComputerDiscardTile(stateAfterDraw.computer.hand)
+  const stateAfterTsumo = resolveComputerTsumoAfterDraw(stateAfterDraw)
 
-  if (tileToDiscard === null) {
-    return stateAfterDraw
+  if (stateAfterTsumo.status === 'ended') {
+    return stateAfterTsumo
   }
 
-  return discardTileAndSwitchTurn(stateAfterDraw, 'computer', tileToDiscard)
+  const tileToDiscard = chooseComputerDiscardTile(stateAfterTsumo.computer.hand)
+
+  if (tileToDiscard === null) {
+    return stateAfterTsumo
+  }
+
+  return discardTileAndSwitchTurn(stateAfterTsumo, 'computer', tileToDiscard)
 }

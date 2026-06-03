@@ -179,6 +179,7 @@ describe('荣和入口', () => {
       loser: 'player',
       method: 'ron',
       yaku: ['yakuhai'],
+      isHaitei: false,
       isHoutei: false,
     })
   })
@@ -232,6 +233,7 @@ describe('荣和入口', () => {
       loser: 'computer',
       method: 'ron',
       yaku: ['yakuhai'],
+      isHaitei: false,
       isHoutei: false,
     })
   })

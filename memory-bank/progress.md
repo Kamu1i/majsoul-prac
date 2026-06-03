@@ -546,3 +546,47 @@
 - 电脑自摸应自动胡牌；玩家自摸应先提供可胡状态，后续 UI 步骤再连接按钮。
 - 第 19 步基础计分可复用 `endResult.method` 判断自摸或荣和，并复用 `winner` / `loser` 更新点数。
 
+## 2026-06-03：完成第 17 步，实现基础自摸入口
+
+已完成 `memory-bank/implementation-plan.md` 中的第 17 步：实现基础自摸入口。
+
+本次完成内容：
+
+- 新增 `src/game/tsumo.ts`，将基础自摸判断与声明流程独立为游戏核心流程模块。
+- 在 `src/game/tsumo.ts` 中实现 `canTsumo(state, winner)`：
+  - 只允许未结束对局中的当前行动方判断自摸。
+  - 复用 `evaluateWinningHand()` 判断当前行动方 14 张手牌是否满足“基础牌形 + 至少一个役种”。
+  - 传入 `method: 'tsumo'`，让自摸本身作为役种参与判断。
+  - 传入 `isHaitei`，让海底摸月可作为 `haitei` 役参与判断。
+- 在 `src/game/tsumo.ts` 中实现 `declareTsumo(state, winner)`：
+  - 可自摸时将对局置为 `ended`。
+  - 清空 `currentActor`。
+  - 写入胡牌结束结果，记录胡牌者、`loser: null`、`method: 'tsumo'`、命中役种、海底状态与河底状态。
+  - 不可自摸时返回原状态。
+- 在 `src/game/tsumo.ts` 中实现 `resolveComputerTsumoAfterDraw(state)`，用于电脑摸牌后可自摸则自动胡牌。
+- 更新 `src/game/computer-turn.ts`，电脑摸牌后先检查自摸；若电脑自摸成功，则直接结束对局，不再选牌、打牌或切换回合。
+- 更新 `src/game/game-state.ts`，扩展胡牌结束结果，新增 `isHaitei` 字段，便于自摸和后续计分/展示区分海底状态。
+- 更新 `src/game/ron.ts` 与 `src/game/ron.test.ts`，荣和结束结果补充 `isHaitei: false`，保持胡牌结束结果结构一致。
+- 新增 `src/game/tsumo.test.ts`，覆盖第 17 步自摸入口核心场景。
+
+新增测试覆盖：
+
+- 玩家摸牌后同时满足牌形和有役时，`canTsumo()` 显示玩家可自摸。
+- 玩家摸牌后牌形合法但无其他役时，自摸役本身允许胡牌。
+- 玩家选择自摸后对局结束。
+- 电脑摸牌后满足自摸条件时，电脑自动胡牌并结束对局。
+- 海底摸月可作为 `haitei` 役参与判断。
+- 自摸结束后不会向任何牌河新增弃牌，也不会改写最后弃牌记录。
+- 自摸结束结果会正确记录胡牌者、`method: 'tsumo'`、命中役种和 `loser: null`。
+
+验证结果：
+
+- 用户已确认第 17 步相关测试通过。
+
+后续注意事项：
+
+- 在用户明确要求前，不开始第 18 步。
+- 第 18 步应实现基础流局规则的补强，重点验证流局后不能继续摸牌、打牌或切换回合，并确认流局不改变双方点数。
+- 当前 `drawTile()` 已能在空牌山摸牌时写入 `{ type: 'exhaustive-draw' }`，第 18 步可在现有流局入口基础上补充测试和必要保护。
+- 第 19 步基础计分可读取 `endResult.method` 区分自摸和荣和；自摸结束结果中 `loser` 为 `null`，计分模块应据此扣除另一方点数。
+
