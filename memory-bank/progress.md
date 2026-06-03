@@ -366,3 +366,41 @@
 - 电脑自动回合流程应只在当前行动方为电脑且对局未结束时执行。
 - 牌山为空时，电脑回合应通过摸牌流程触发流局，不应继续选择或打牌。
 - `src/game/ai.ts` 仍应只负责选牌策略，不应直接修改对局状态或依赖 DOM。
+
+## 2026-06-03：完成第 13 步，连接电脑自动回合
+
+已完成 `memory-bank/implementation-plan.md` 中的第 13 步：连接电脑自动回合。
+
+本次完成内容：
+
+- 新增 `src/game/computer-turn.ts`，将电脑自动回合流程独立为游戏核心流程模块。
+- 在 `src/game/computer-turn.ts` 中实现 `playComputerTurn(state)`：
+  - 仅在 `status` 为 `computer-turn` 且 `currentActor` 为 `computer` 时执行。
+  - 先复用 `drawTile()` 让电脑从牌山摸牌。
+  - 如果摸牌后对局已结束，例如空牌山触发流局，则直接返回结束状态，不再打牌。
+  - 复用 `chooseComputerDiscardTile()` 从电脑手牌中选择要打出的牌。
+  - 复用 `discardTileAndSwitchTurn()` 完成电脑打牌并切换回玩家回合。
+  - 非电脑回合调用时直接返回原状态，不修改对局。
+- 新增 `src/game/computer-turn.test.ts`，覆盖电脑自动回合的关键流程。
+
+新增测试覆盖：
+
+- 电脑回合开始且牌山非空时，会先摸牌再打牌。
+- 电脑回合结束后，电脑手牌数量保持在当前流程预期。
+- 电脑牌河增加 1 张，最后弃牌者记录为电脑。
+- 电脑回合结束后，行动方切换回玩家。
+- 牌山为空时，电脑回合触发流局，不再打牌。
+- 非电脑回合调用 `playComputerTurn()` 不会修改状态。
+
+验证结果：
+
+- 用户已确认 `npm run test -- src/game/computer-turn.test.ts` 通过。
+- 用户已确认 `npm run test` 通过。
+- 用户已确认 `npm run build` 通过。
+
+后续注意事项：
+
+- 在用户明确要求前，不开始第 14 步。
+- 第 14 步应实现基础胡牌牌形判断，建议新增独立规则模块，例如 `src/game/rules.ts` 或更细分的胡牌形判断模块。
+- 胡牌牌形判断只应判断牌形，不应在第 14 步直接决定有役、荣和、自摸或计分。
+- 当前 `computer-turn.ts` 只组合摸牌、AI 选牌、打牌和回合切换，不负责胡牌判断、副露、计分或 UI 渲染。
