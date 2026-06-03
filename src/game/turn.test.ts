@@ -3,6 +3,9 @@ import { createTilePool, type TileCopy } from './deck'
 import { discardTile } from './discard'
 import { createNewGameState, type Actor, type GameState } from './game-state'
 import { discardTileAndSwitchTurn, switchTurnAfterDiscard } from './turn'
+import type { Tile } from './tile'
+
+type TileId = Tile['id']
 
 function fixedRandomSource(): number {
   return 0.42
@@ -31,9 +34,40 @@ function findTileOutsideHand(hand: TileCopy[]): TileCopy {
   return tileOutsideHand
 }
 
+function tileCopies(tileIds: TileId[]): TileCopy[] {
+  const remainingTiles = [...createTilePool()]
+
+  return tileIds.map((tileId) => {
+    const tileIndex = remainingTiles.findIndex((tileCopy) => tileCopy.tile.id === tileId)
+
+    if (tileIndex === -1) {
+      throw new Error('测试牌池中没有足够的指定牌')
+    }
+
+    const tileCopy = remainingTiles[tileIndex]
+    remainingTiles.splice(tileIndex, 1)
+
+    return tileCopy
+  })
+}
+
+function withActorHand(state: GameState, actor: Actor, hand: TileCopy[]): GameState {
+  return {
+    ...state,
+    player: actor === 'player' ? { ...state.player, hand } : state.player,
+    computer: actor === 'computer' ? { ...state.computer, hand } : state.computer,
+  }
+}
+
 describe('discardTileAndSwitchTurn', () => {
   it('switches current actor to computer after a valid player discard', () => {
-    const state = withCurrentActor(createNewGameState(fixedRandomSource), 'player')
+    const state = {
+      ...withCurrentActor(createNewGameState(fixedRandomSource), 'player'),
+      computer: {
+        ...createNewGameState(fixedRandomSource).computer,
+        hand: [],
+      },
+    }
     const tileToDiscard = state.player.hand[0]
 
     const nextState = discardTileAndSwitchTurn(state, 'player', tileToDiscard)
@@ -52,6 +86,29 @@ describe('discardTileAndSwitchTurn', () => {
     expect(nextState.currentActor).toBe('player')
     expect(nextState.status).toBe('player-turn')
     expect(nextState.computer.discardPile).toEqual([...state.computer.discardPile, tileToDiscard])
+  })
+
+  it('玩家弃牌后电脑自动副露时，会由电脑打出一张牌继续流程', () => {
+    const playerDiscard = tileCopies(['dragon-white'])[0]
+    const state = withActorHand(
+      {
+        ...withCurrentActor(createNewGameState(fixedRandomSource), 'player'),
+        player: {
+          ...createNewGameState(fixedRandomSource).player,
+          hand: [playerDiscard],
+        },
+      },
+      'computer',
+      tileCopies(['dragon-white', 'dragon-white', 'souzu-2']),
+    )
+
+    const nextState = discardTileAndSwitchTurn(state, 'player', playerDiscard)
+
+    expect(nextState.currentActor).toBe('player')
+    expect(nextState.status).toBe('player-turn')
+    expect(nextState.computer.melds[0].type).toBe('pon')
+    expect(nextState.computer.discardPile).toHaveLength(state.computer.discardPile.length + 1)
+    expect(nextState.lastDiscard?.actor).toBe('computer')
   })
 
   it('does not switch current actor after an invalid discard', () => {

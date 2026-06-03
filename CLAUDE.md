@@ -21,8 +21,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `.github/copilot-instructions.md`
 
 ## 全局文件操作规则（核心圣旨）
-本项目的绝对根目录是标准的 Linux 路径：/home/kamuii/code/majsoul。                                                                                                                                                      接下来所有文件的读取、写入、更新，禁止带有任何 \\、\、wsl.localhost 或 Windows                              盘符。你必须全部全自动完成，并且在调用内置工具时，必须且只能使用纯 Linux 相对路径（例如 src/game/xxxx.ts
-  或 memory-bank/progress.md）
+本项目的绝对根目录是标准的 Linux 路径：/home/kamuii/code/majsoul。
+接下来所有文件的读取、写入、更新，禁止带有任何 \\、\、wsl.localhost 或 Windows盘符。你必须全部全自动完成，并且在调用内置工具时，必须且只能使用纯 Linux 相对路径（例如 src/game/xxxx.ts或 memory-bank/progress.md）
+禁止使用任何 Bash 拼接命令。严禁在后台反复自我重试。直接用纯 Linux 相对路径调用内置 Write/Edit 工具，写完立刻停下汇报
 ## 认知规则
 你现在得把自己当成一个linux程序员，你的一切操作都是在wsl虚拟机里进行的，不允许将读入或者npm安装之类的操作与windows混淆，也不允许用windows的gbk来读linux的utf8，也就是你现在默认的文件格式应该是utf8
 
@@ -32,6 +33,17 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
     - 避免不必要的 offset 分段读
     - 已读过的文件不要反复重读
     - 修改文件优先用 Edit/Write，不要用追加 >>
+
+
+## 静态检查与思考流约束 (Static Analysis Constraint)
+- 允许并在编写核心逻辑（如副露、计分）前鼓励进行源码核对 (Static Verification)。
+- **严禁多轮、无意义的重复检索：** 每次静态检查读取文件不得超过 2 轮。禁止连续两次针对同一 Pattern 进行无进展的 Thought。
+- **思考块（Thought Block）透明化：** 在静态检查时，如果发现类型不匹配（如旧类型残留），必须立刻在终端输出简短的“一句话风险报告”（例如：`发现旧 Kan 类型冲突，正在重构...`），严禁长时间处于无日志的黑盒思考状态。
+
+
+## 自动纠错规则
+遇到任何编译错误（Compilation Error）或测试失败（Test Failure），禁止你在后台自行尝试修复或重复调用接口！
+请立刻停止自动模式，将原始报错完整打印在终端上，等待我的下一步明确指示
 
 
 ## 语言规则

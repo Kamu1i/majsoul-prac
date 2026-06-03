@@ -1,10 +1,12 @@
+import type { Meld } from './player'
 import type { TileCopy } from './deck'
 import type { Actor, GameState, ScoreSettlement, Yaku } from './game-state'
-import { isBasicWinningHand, isSevenPairsWinningHand } from './rules'
+import { isSevenPairsWinningHand, isWinningHandWithOpenMelds } from './rules'
 import { createScoreSettlement } from './scoring'
 
 export type WinEvaluationContext = Readonly<{
   method: 'ron' | 'tsumo'
+  melds?: readonly Meld[]
   isRiichi?: boolean
   isHaitei?: boolean
   isHoutei?: boolean
@@ -23,7 +25,11 @@ function getActorHand(state: GameState, actor: Actor): TileCopy[] {
   return actor === 'player' ? state.player.hand : state.computer.hand
 }
 
-function hasYakuhai(tiles: readonly TileCopy[]): boolean {
+function getActorMelds(state: GameState, actor: Actor): Meld[] {
+  return actor === 'player' ? state.player.melds : state.computer.melds
+}
+
+function hasYakuhai(tiles: readonly TileCopy[], melds: readonly Meld[] = []): boolean {
   const dragonTileCounts = new Map<string, number>()
 
   for (const tileCopy of tiles) {
@@ -32,6 +38,12 @@ function hasYakuhai(tiles: readonly TileCopy[]): boolean {
     }
 
     dragonTileCounts.set(tileCopy.tile.id, (dragonTileCounts.get(tileCopy.tile.id) ?? 0) + 1)
+  }
+
+  for (const meld of melds) {
+    if (meld.tiles.length >= 3 && meld.tiles.every((tileCopy) => tileCopy.tile.suit === 'dragon' && tileCopy.tile.id === meld.tiles[0].tile.id)) {
+      return true
+    }
   }
 
   for (const count of dragonTileCounts.values()) {
@@ -43,8 +55,10 @@ function hasYakuhai(tiles: readonly TileCopy[]): boolean {
   return false
 }
 
-function isTanyao(tiles: readonly TileCopy[]): boolean {
-  return tiles.every((tileCopy) => tileCopy.tile.suit === 'souzu' && tileCopy.tile.rank >= 2 && tileCopy.tile.rank <= 8)
+function isTanyao(tiles: readonly TileCopy[], melds: readonly Meld[] = []): boolean {
+  const allTiles = [...tiles, ...melds.flatMap((meld) => meld.tiles)]
+
+  return allTiles.every((tileCopy) => tileCopy.tile.suit === 'souzu' && tileCopy.tile.rank >= 2 && tileCopy.tile.rank <= 8)
 }
 
 export function evaluateWinningHand(
@@ -52,8 +66,9 @@ export function evaluateWinningHand(
   context: WinEvaluationContext,
 ): WinEvaluation {
   const tileTypes = tiles.map((tileCopy) => tileCopy.tile)
+  const melds = context.melds ?? []
 
-  if (!isBasicWinningHand(tileTypes)) {
+  if (!isWinningHandWithOpenMelds(tileTypes, melds.length)) {
     return {
       canWin: false,
       yaku: [],
@@ -70,15 +85,15 @@ export function evaluateWinningHand(
     yaku.push('tsumo')
   }
 
-  if (hasYakuhai(tiles)) {
+  if (hasYakuhai(tiles, melds)) {
     yaku.push('yakuhai')
   }
 
-  if (isTanyao(tiles)) {
+  if (isTanyao(tiles, melds)) {
     yaku.push('tanyao')
   }
 
-  if (isSevenPairsWinningHand(tileTypes)) {
+  if (melds.length === 0 && isSevenPairsWinningHand(tileTypes)) {
     yaku.push('seven-pairs')
   }
 
@@ -108,6 +123,7 @@ export function canRon(state: GameState, winner: Actor): WinEvaluation {
 
   return evaluateWinningHand([...getActorHand(state, winner), lastDiscard.tile], {
     method: 'ron',
+    melds: getActorMelds(state, winner),
     isHoutei: state.isHoutei,
   })
 }

@@ -1,4 +1,6 @@
+import { chooseComputerDiscardTile } from './ai'
 import { discardTile } from './discard'
+import { resolveComputerMeldAfterPlayerDiscard } from './meld'
 import { resolveComputerRonAfterPlayerDiscard } from './ron'
 import type { TileCopy } from './deck'
 import type { Actor, GameState, GameStatus } from './game-state'
@@ -39,5 +41,19 @@ export function discardTileAndSwitchTurn(
   const stateAfterDiscard = discardTile(state, actor, tileToDiscard)
   const stateAfterComputerRon = resolveComputerRonAfterPlayerDiscard(stateAfterDiscard)
 
-  return switchTurnAfterDiscard(state, stateAfterComputerRon)
+  if (stateAfterComputerRon !== stateAfterDiscard || stateAfterComputerRon.status === 'ended') {
+    return switchTurnAfterDiscard(state, stateAfterComputerRon)
+  }
+
+  const stateAfterComputerMeld = resolveComputerMeldAfterPlayerDiscard(stateAfterDiscard)
+
+  if (stateAfterComputerMeld !== stateAfterDiscard) {
+    const tileToDiscardAfterMeld = chooseComputerDiscardTile(stateAfterComputerMeld.computer.hand)
+
+    return tileToDiscardAfterMeld === null
+      ? stateAfterComputerMeld
+      : discardTileAndSwitchTurn(stateAfterComputerMeld, 'computer', tileToDiscardAfterMeld)
+  }
+
+  return switchTurnAfterDiscard(state, stateAfterDiscard)
 }

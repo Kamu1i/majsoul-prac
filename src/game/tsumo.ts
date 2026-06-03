@@ -20,6 +20,7 @@ export function canTsumo(state: GameState, winner: Actor): WinEvaluation {
 
   return evaluateWinningHand(getActorHand(state, winner), {
     method: 'tsumo',
+    melds: winner === 'player' ? state.player.melds : state.computer.melds,
     isHaitei: state.isHaitei,
   })
 }

@@ -649,3 +649,48 @@
 - 第 20 步应实现吃、碰、杠副露流程，并注意副露后的胡牌判断仍需满足有效牌形和有役要求。
 - 当前基础计分使用固定分值，不包含番符、亲子差异、供托、场棒或多局制结算。
 - 后续 UI 展示对局结果时应优先读取 `state.scoreSettlement` 展示结算原因、双方点数变化和结算后点数。
+
+## 2026-06-03：完成第 20 步，实现吃、碰、杠副露流程
+
+已完成 `memory-bank/implementation-plan.md` 中的第 20 步：实现吃、碰、杠副露流程。
+
+本次完成内容：
+
+- 更新 `src/game/player.ts`，扩展副露数据结构：
+  - `MeldType` 现在区分 `chi`、`pon`、`open-kan`、`closed-kan`。
+  - `Meld` 现在记录副露牌组 `tiles`、被叫牌 `calledTile` 和来源 `from`。
+  - 暗杠使用 `calledTile: null` 与 `from: null` 表示不来自弃牌。
+- 新增 `src/game/meld.ts`，将副露候选判断与副露声明流程独立出来：
+  - `getChiCandidates()`：基于最后弃牌判断可吃顺子候选，只允许索子顺子。
+  - `getPonCandidate()`：判断两张同牌手牌加最后弃牌组成碰牌。
+  - `getOpenKanCandidate()`：判断三张同牌手牌加最后弃牌组成明杠。
+  - `getClosedKanCandidates()`：判断当前行动方手牌中四张同牌组成暗杠。
+  - `declareChi()`、`declarePon()`、`declareOpenKan()`、`declareClosedKan()`：执行对应副露，移除手牌、写入副露列表并设置副露方为当前行动方。
+  - `resolveComputerMeldAfterPlayerDiscard()`：玩家弃牌后电脑按明杠、碰、吃的确定性优先级自动副露。
+- 更新 `src/game/turn.ts`：
+  - 玩家弃牌后仍先检查电脑荣和。
+  - 电脑不能荣和时，再检查电脑自动副露。
+  - 电脑副露后会用现有 AI 选择一张牌打出，再切回玩家回合。
+- 更新 `src/game/rules.ts`，新增 `isWinningHandWithOpenMelds()`：
+  - 无副露时继续复用标准形与七对子基础胡牌判断。
+  - 有副露时按剩余暗手牌数量判断是否还能组成雀头与必要面子。
+- 更新 `src/game/ron.ts` 与 `src/game/tsumo.ts`：
+  - 胡牌判断上下文现在可接收已有副露。
+  - 役牌和断幺九判断会同时读取暗手牌与副露牌组。
+  - 七对子只在无副露时作为役种参与判断。
+- 新增 `src/game/meld.test.ts`，覆盖第 20 步副露流程要求。
+- 更新 `src/game/player.test.ts` 与 `src/game/turn.test.ts`，适配新的副露结构并覆盖电脑副露后继续打牌的流程。
+- 修复一次自动副露移除同种牌的问题：当弃牌与手牌中同种牌的 `copyIndex` 重合时，不能用实体牌完全相等过滤被叫牌，否则会漏删一张同名手牌；现在按副露牌组重新从手牌中选择应移除的实体牌。
+
+验证结果：
+
+- 用户已确认 `npm run test -- src/game/meld.test.ts` 通过。
+- 用户已确认 `npm run test` 通过。
+- 用户已确认 `npm run build` 通过。
+
+后续注意事项：
+
+- 在用户明确要求前，不开始第 21 步。
+- 第 21 步应实现基础页面布局，展示玩家手牌、电脑信息、双方点数、牌河、剩余牌山、当前回合提示、听牌提示、可胡提示和操作按钮区域。
+- 当前副露流程只实现基础闭环，不实现王牌、岭上牌、抢杠、加杠、杠后补牌或复杂副露选择策略。
+- 后续 UI 连接玩家副露交互时，应优先调用 `getChiCandidates()`、`getPonCandidate()`、`getOpenKanCandidate()` 和 `getClosedKanCandidates()` 判断按钮展示，再调用对应 `declare*()` 入口执行。

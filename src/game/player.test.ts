@@ -22,7 +22,12 @@ describe('玩家状态', () => {
 
     player.hand.push(tileCopy)
     player.discardPile.push(tileCopy)
-    player.melds.push({ type: 'pon', tiles: [tileCopy, tileCopy, tileCopy] })
+    player.melds.push({
+      type: 'pon',
+      tiles: [tileCopy, tileCopy, tileCopy],
+      calledTile: tileCopy,
+      from: 'computer',
+    })
     player.points -= 1000
 
     expect(computer.hand).toEqual([])

@@ -183,3 +183,100 @@
 - `src/game/ron.test.ts` 覆盖荣和结束流程写入 `scoreSettlement`。
 - `src/game/tsumo.test.ts` 覆盖自摸结束流程写入 `scoreSettlement`。
 - `src/game/draw.test.ts` 覆盖流局结束流程写入零分差 `scoreSettlement`。
+
+## 第 20 步新增架构说明
+
+### `src/game/meld.ts`
+
+副露候选判断与执行模块。
+
+职责：
+
+- 导出 `getChiCandidates(state, actor)`，基于最后弃牌和指定一方手牌返回可吃候选。
+- 导出 `getPonCandidate(state, actor)`，返回可碰候选或 `null`。
+- 导出 `getOpenKanCandidate(state, actor)`，返回可明杠候选或 `null`。
+- 导出 `getClosedKanCandidates(state, actor)`，返回当前行动方可暗杠候选。
+- 导出 `declareChi()`、`declarePon()`、`declareOpenKan()`、`declareClosedKan()`，执行对应副露操作。
+- 导出 `resolveComputerMeldAfterPlayerDiscard(state)`，用于玩家弃牌后电脑自动副露。
+
+当前副露规则：
+
+- 吃牌只允许索子顺子，不允许字牌吃牌，也不允许非连续索子吃牌。
+- 碰牌由两张同牌手牌加最后弃牌组成。
+- 明杠由三张同牌手牌加最后弃牌组成。
+- 暗杠由当前行动方手牌中四张同牌组成，不读取最后弃牌。
+- 副露执行后会从副露方手牌移除对应实体牌，并把组合写入副露方 `melds`。
+- 使用弃牌形成的副露会从弃牌来源方牌河移除该弃牌，并清空 `lastDiscard`，避免后续重复响应同一张弃牌。
+- 电脑自动副露优先级为明杠、碰、吃；基础版不做复杂收益判断。
+- 电脑通过玩家弃牌副露后，由 `turn.ts` 继续调用 AI 选择一张牌打出，再切回玩家回合。
+
+设计约束：
+
+- `meld.ts` 不依赖 DOM 或 UI 事件。
+- `meld.ts` 不处理摸牌、胡牌结算或页面提示。
+- 当前不实现王牌、岭上牌、抢杠、加杠、杠后补牌或复杂副露选择策略。
+- 玩家 UI 后续应先读取候选判断函数决定按钮展示，再调用对应声明函数执行副露。
+
+### `src/game/player.ts`
+
+第 20 步扩展副露状态结构：
+
+- `MeldType` 现在包含 `chi`、`pon`、`open-kan`、`closed-kan`。
+- `Meld.tiles` 记录完整副露组合。
+- `Meld.calledTile` 记录被叫牌；暗杠为 `null`。
+- `Meld.from` 记录弃牌来源；暗杠为 `null`。
+
+### `src/game/rules.ts`
+
+第 20 步新增副露胡牌牌形入口：
+
+- `isWinningHandWithOpenMelds(tiles, openMeldCount)` 根据已有副露数量判断剩余暗手牌是否可构成合法胡牌结构。
+- 无副露时继续复用 `isBasicWinningHand()`，保留标准形和七对子判断。
+- 有副露时按 `14 - openMeldCount * 3` 计算暗手牌期望数量，并要求暗手牌能组成雀头与剩余面子。
+
+### `src/game/ron.ts`
+
+第 20 步新增副露胡牌衔接：
+
+- `WinEvaluationContext` 新增 `melds` 字段。
+- `evaluateWinningHand()` 现在调用 `isWinningHandWithOpenMelds()`，支持已有副露的胡牌判断。
+- 役牌与断幺九判断会同时读取暗手牌和副露牌组。
+- 七对子只在无副露时参与役种判断。
+- `canRon()` 会读取胡牌方当前 `melds`，因此荣和入口可处理副露后的剩余手牌。
+
+### `src/game/tsumo.ts`
+
+第 20 步新增副露胡牌衔接：
+
+- `canTsumo()` 调用 `evaluateWinningHand()` 时会传入当前行动方已有副露。
+- 自摸仍要求当前行动方、未结束状态、有效牌形与至少一个役种。
+
+### `src/game/turn.ts`
+
+第 20 步新增电脑副露流程衔接：
+
+- 玩家合法弃牌后仍先调用电脑荣和检查。
+- 电脑不能荣和时，调用 `resolveComputerMeldAfterPlayerDiscard()` 尝试自动副露。
+- 电脑副露成功后，复用 `chooseComputerDiscardTile()` 选择打出牌，并再次通过 `discardTileAndSwitchTurn()` 完成打牌与回合切换。
+- 如果电脑没有副露，则沿用原有普通回合切换逻辑。
+
+### `src/game/meld.test.ts`
+
+副露流程测试文件。
+
+职责：
+
+- 验证玩家可以用电脑弃牌完成合法吃牌。
+- 验证字牌不能被吃、非连续索子不能被吃。
+- 验证玩家可以用电脑弃牌完成合法碰牌。
+- 验证玩家可以用电脑弃牌完成合法明杠。
+- 验证玩家可以在自己回合完成合法暗杠。
+- 验证电脑满足条件时按确定性规则自动副露。
+- 验证副露后对应手牌数量减少、副露列表增加、弃牌来源记录正确。
+- 验证副露后胡牌判断仍要求有效牌形和有役。
+
+### 第 20 步相关测试覆盖
+
+- `src/game/meld.test.ts` 覆盖副露候选判断、声明入口、电脑自动副露和副露后的胡牌判断。
+- `src/game/player.test.ts` 覆盖新副露结构下玩家状态实例隔离。
+- `src/game/turn.test.ts` 覆盖玩家弃牌后电脑自动副露、电脑打牌并切回玩家的流程。

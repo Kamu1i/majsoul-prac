@@ -102,8 +102,8 @@ function hasValidTileCounts(counts: ReadonlyMap<Tile['id'], number>): boolean {
   return true
 }
 
-function getWinningHandCounts(tiles: readonly Tile[]): Map<Tile['id'], number> | null {
-  if (tiles.length !== winningHandTileCount || !tiles.every(isAllowedTile)) {
+function getWinningHandCounts(tiles: readonly Tile[], tileCount = winningHandTileCount): Map<Tile['id'], number> | null {
+  if (tiles.length !== tileCount || !tiles.every(isAllowedTile)) {
     return null
   }
 
@@ -156,6 +156,33 @@ export function isSevenPairsWinningHand(tiles: readonly Tile[]): boolean {
 
 export function isBasicWinningHand(tiles: readonly Tile[]): boolean {
   return isStandardWinningHand(tiles) || isSevenPairsWinningHand(tiles)
+}
+
+export function isWinningHandWithOpenMelds(tiles: readonly Tile[], openMeldCount: number): boolean {
+  if (openMeldCount === 0) {
+    return isBasicWinningHand(tiles)
+  }
+
+  const expectedConcealedTileCount = winningHandTileCount - openMeldCount * meldTileCount
+  const counts = getWinningHandCounts(tiles, expectedConcealedTileCount)
+
+  if (counts === null) {
+    return false
+  }
+
+  for (const tileId of tileIds) {
+    if (getTileCount(counts, tileId) < pairTileCount) {
+      continue
+    }
+
+    const countsWithoutPair = removeTiles(counts, [tileId, tileId])
+
+    if (countsWithoutPair !== null && canFormMelds(countsWithoutPair)) {
+      return true
+    }
+  }
+
+  return false
 }
 
 export const standardWinningHandTileCount = winningHandTileCount
