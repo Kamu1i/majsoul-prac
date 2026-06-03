@@ -223,3 +223,37 @@
 - 第 9 步应复用本次新增的 `currentActor`、`wall`、`isHaitei` 和 `endResult` 字段，不要在 UI 层实现摸牌或流局逻辑。
 - `src/game/game-state.ts` 已成为对局状态聚合模块，但仍应只负责状态结构和新对局初始化；后续摸牌、打牌、回合切换等动作可视复杂度拆到独立流程模块，避免形成巨文件。
 
+
+## 2026-06-03：完成第 9 步，实现摸牌动作
+
+已完成 `memory-bank/implementation-plan.md` 中的第 9 步：实现摸牌动作。
+
+本次完成内容：
+
+- 新增 `src/game/draw.ts`，将摸牌动作从综合对局状态模块中拆出，避免 `src/game/game-state.ts` 继续膨胀。
+- 在 `src/game/draw.ts` 中实现 `drawTile(state)`：
+  - 根据 `state.currentActor` 判断当前摸牌方。
+  - 从 `state.wall` 第一张取牌。
+  - 将摸到的牌追加到当前行动方的 `hand`。
+  - 将摸走的牌从 `wall` 中移除。
+  - 当摸走的是牌山最后一张牌时，将 `isHaitei` 标记为 `true`。
+  - 当牌山为空时，不增加任何手牌，并将对局置为流局结束状态。
+- 牌山为空时的流局结果写入：
+  - `status: 'ended'`
+  - `currentActor: null`
+  - `endResult: { type: 'exhaustive-draw' }`
+  - `isHaitei: false`
+- 新增 `src/game/draw.test.ts`，覆盖玩家摸牌、电脑摸牌、从牌山第一张摸牌、摸到最后一张触发海底标记、空牌山触发流局结束等场景。
+- 修复一次构建兼容性问题：测试中避免使用 `Array.prototype.at()`，改用 ES2020 兼容的数组索引访问，以符合当前 `tsconfig.json` 的 `lib: ["ES2020", "DOM", "DOM.Iterable"]` 配置。
+
+验证结果：
+
+- 用户已确认 `npm run test` 通过。
+- 用户已确认 `npm run build` 通过。
+
+后续注意事项：
+
+- 在用户明确要求前，不开始第 10 步。
+- 第 10 步应实现打牌动作：从当前行动方手牌中移除指定实始牌，加入对应弃牌河，并记录 `lastDiscard`、打牌者与河底标记。
+- 第 10 步应继续保持 `src/game/game-state.ts` 轻量，优先将打牌动作拆到独立模块，例如 `src/game/discard.ts`。
+- 第 10 步需要注意：非法打牌、非当前行动方打牌、已结束对局打牌都不应修改状态。
