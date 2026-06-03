@@ -98,4 +98,19 @@ describe('discardTile', () => {
 
     expect(nextState).toBe(state)
   })
+
+  it('does not allow discarding after an exhaustive draw ended the game', () => {
+    const state = withCurrentActor(createNewGameState(fixedRandomSource), 'player')
+    const endedState: GameState = {
+      ...state,
+      status: 'ended',
+      currentActor: null,
+      endResult: { type: 'exhaustive-draw' },
+    }
+    const tileToDiscard = endedState.player.hand[0]
+
+    const nextState = discardTile(endedState, 'player', tileToDiscard)
+
+    expect(nextState).toBe(endedState)
+  })
 })

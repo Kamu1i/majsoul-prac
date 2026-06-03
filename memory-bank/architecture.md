@@ -48,3 +48,53 @@
 - 第 19 步基础计分应把荣和的 `loser` 与自摸的 `loser: null` 区分处理。
 - 第 24 步玩家胡牌交互应同时复用 `canRon()` / `declareRon()` 与 `canTsumo()` / `declareTsumo()`。
 
+## 第 18 步新增架构说明
+
+### `src/game/draw.ts`
+
+摸牌与空牌山流局入口模块。
+
+第 18 步确认并补强的流局职责：
+
+- 当 `drawTile(state)` 发现 `state.wall` 为空时，结束对局并记录 `endResult: { type: 'exhaustive-draw' }`。
+- 流局时将 `status` 设置为 `ended`，将 `currentActor` 设置为 `null`，供后续动作模块统一阻止继续操作。
+- 流局时不修改玩家或电脑点数；第 19 步计分模块可继续把流局视为零分差结算。
+- 已结束对局再次调用 `drawTile()` 会直接返回原状态，不会摸牌、不会改变手牌、不会改变牌山。
+
+### `src/game/discard.ts`
+
+打牌动作模块。
+
+第 18 步确认并补强的流局后保护职责：
+
+- `discardTile()` 已通过 `state.status === 'ended'` 阻止任何已结束对局继续打牌。
+- 流局结束状态与胡牌结束状态共享同一保护入口，因此 `endResult.type === 'exhaustive-draw'` 后打牌会直接返回原状态。
+- 打牌模块不负责创建流局结果，只负责在结束状态下保持状态不可变。
+
+### `src/game/turn.ts`
+
+打牌后的回合切换模块。
+
+第 18 步确认的流局后保护职责：
+
+- `switchTurnAfterDiscard()` 已通过 `stateAfterDiscard.status === 'ended'` 阻止已结束对局继续切换行动方。
+- 流局结束后 `currentActor` 为 `null`，不会再进入合法打牌后的回合切换流程。
+- 该模块不创建流局结果，只消费动作模块返回的结束状态。
+
+### 流局状态边界
+
+当前基础流局边界为：
+
+- `draw.ts` 是唯一负责在空牌山摸牌时创建 `exhaustive-draw` 结束结果的模块。
+- `discard.ts` 与 `turn.ts` 负责尊重 `ended` 状态，防止流局后继续打牌或切换回合。
+- 流局不改变点数；第 19 步基础计分应在结算记录中显式记录双方分差为 0。
+- UI 后续展示流局时应读取 `state.endResult?.type === 'exhaustive-draw'`，不要通过牌山是否为空自行推断结束结果。
+
+### 第 18 步相关测试覆盖
+
+- `src/game/draw.test.ts` 验证空牌山继续摸牌会结束为流局。
+- `src/game/draw.test.ts` 验证流局时玩家与电脑点数仍为 100000。
+- `src/game/draw.test.ts` 验证流局结束后再次摸牌不会改变状态。
+- `src/game/discard.test.ts` 验证流局结束后不能继续打牌。
+- `src/game/turn.test.ts` 已覆盖已结束状态不会继续切换回合。
+

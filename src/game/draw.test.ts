@@ -81,4 +81,30 @@ describe('drawTile', () => {
     expect(nextState.currentActor).toBeNull()
     expect(nextState.endResult).toEqual({ type: 'exhaustive-draw' })
   })
+
+  it('keeps both players points unchanged when the game ends as exhaustive draw', () => {
+    const state: GameState = {
+      ...createNewGameState(fixedRandomSource),
+      wall: [],
+    }
+
+    const nextState = drawTile(state)
+
+    expect(nextState.player.points).toBe(100000)
+    expect(nextState.computer.points).toBe(100000)
+  })
+
+  it('does not draw after an exhaustive draw has already ended the game', () => {
+    const state: GameState = {
+      ...createNewGameState(fixedRandomSource),
+      status: 'ended',
+      currentActor: null,
+      endResult: { type: 'exhaustive-draw' },
+      wall: createNewGameState(fixedRandomSource).wall.slice(0, 1),
+    }
+
+    const nextState = drawTile(state)
+
+    expect(nextState).toBe(state)
+  })
 })

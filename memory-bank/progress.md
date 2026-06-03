@@ -590,3 +590,29 @@
 - 当前 `drawTile()` 已能在空牌山摸牌时写入 `{ type: 'exhaustive-draw' }`，第 18 步可在现有流局入口基础上补充测试和必要保护。
 - 第 19 步基础计分可读取 `endResult.method` 区分自摸和荣和；自摸结束结果中 `loser` 为 `null`，计分模块应据此扣除另一方点数。
 
+## 2026-06-03：完成第 18 步，实现基础流局
+
+已完成 `memory-bank/implementation-plan.md` 中的第 18 步：实现基础流局。
+
+本次完成内容：
+
+- 复用 `src/game/draw.ts` 中已有的空牌山摸牌流局入口：当 `wall` 为空时，`drawTile()` 会将对局置为 `ended`，清空 `currentActor`，并写入 `endResult: { type: 'exhaustive-draw' }`。
+- 补充 `src/game/draw.test.ts`，验证流局时玩家与电脑点数保持 100000 不变。
+- 补充 `src/game/draw.test.ts`，验证已流局结束的对局不能继续通过摸牌改变状态。
+- 补充 `src/game/discard.test.ts`，验证已流局结束的对局不能继续打牌。
+- 继续复用 `src/game/turn.test.ts` 中已结束状态不会切换回合的覆盖，满足流局后不能继续切换回合的要求。
+- 本步骤没有引入计分变更；流局暂不改变双方点数，为第 19 步基础计分保留清晰边界。
+
+验证结果：
+
+- 用户已确认第 18 步相关测试通过。
+- 用户已确认全量测试通过。
+- 用户已确认构建通过。
+
+后续注意事项：
+
+- 在用户明确要求前，不开始第 19 步。
+- 第 19 步应实现基础结算模块，按固定分值处理自摸、荣和与流局。
+- 流局结算应保持双方点数不变，并记录结算原因、得分变化和结算后点数。
+- 第 19 步可读取 `endResult.type` 区分 `win` 与 `exhaustive-draw`，读取 `endResult.method` 区分自摸与荣和。
+
