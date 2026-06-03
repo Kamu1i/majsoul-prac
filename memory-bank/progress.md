@@ -294,3 +294,38 @@
 - 非法打牌不应触发回合切换，因此第 11 步应基于 `discardTile()` 返回值或独立的合法性判断组合流程，避免无条件切换。
 - 已结束状态下不应继续切换回合。
 - 当前 `discardTile()` 只负责打牌本身，不负责胡牌判断、吃碰杠响应、计分或回合切换。
+
+
+## 2026-06-03：完成第 11 步，实现回合切换
+
+已完成 `memory-bank/implementation-plan.md` 中的第 11 步：实现回合切换。
+
+本次完成内容：
+
+- 新增 `src/game/turn.ts`，将合法打牌后的回合切换流程从打牌模块和对局状态模块中拆出。
+- 在 `src/game/turn.ts` 中实现 `discardTileAndSwitchTurn(state, actor, tileToDiscard)`：
+  - 先复用 `discardTile()` 执行打牌。
+  - 仅在打牌合法、状态确实变化后切换回合。
+  - 玩家合法打牌后切换为电脑回合。
+  - 电脑合法打牌后切换为玩家回合。
+  - 非法打牌、非当前行动方打牌或已结束状态打牌不会触发回合切换。
+- 在 `src/game/turn.ts` 中实现 `switchTurnAfterDiscard(stateBeforeDiscard, stateAfterDiscard)`，方便后续流程在已经完成打牌动作后单独组合回合切换。
+- 新增 `src/game/turn.test.ts`，覆盖：
+  - 玩家合法打牌后 `currentActor` 变为 `computer`，`status` 变为 `computer-turn`。
+  - 电脑合法打牌后 `currentActor` 变为 `player`，`status` 变为 `player-turn`。
+  - 非法打牌不会切换行动方，并返回原状态。
+  - 已结束状态下不会切换行动方。
+  - 已经完成合法 `discardTile()` 后，可以通过 `switchTurnAfterDiscard()` 单独完成回合切换。
+
+验证结果：
+
+- 用户已确认 `npm run test` 通过。
+- 用户已确认 `npm run build` 通过。
+
+后续注意事项：
+
+- 在用户明确要求前，不开始第 12 步。
+- 第 12 步应实现基础电脑出牌策略，建议新增 `src/game/ai.ts`。
+- 电脑策略只应负责从电脑手牌中选择要打出的牌，不直接修改 `GameState`。
+- 第 13 步再把电脑摸牌、AI 选牌、打牌和回合切换组合成电脑自动回合流程。
+- 当前 `turn.ts` 已可作为第 13 步组合流程的基础，但不负责摸牌、AI、胡牌判断或计分。
