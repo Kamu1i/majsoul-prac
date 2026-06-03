@@ -8,11 +8,15 @@ export type Actor = 'player' | 'computer'
 
 export type WinMethod = 'ron' | 'tsumo'
 
+export type Yaku = 'riichi' | 'tsumo' | 'yakuhai' | 'tanyao' | 'seven-pairs' | 'haitei' | 'houtei'
+
 export type GameEndResult = Readonly<{
   type: 'win'
   winner: Actor
   loser: Actor | null
   method: WinMethod
+  yaku: readonly Yaku[]
+  isHoutei: boolean
 }> | Readonly<{
   type: 'exhaustive-draw'
 }>

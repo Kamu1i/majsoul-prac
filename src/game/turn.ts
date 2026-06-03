@@ -1,4 +1,5 @@
 import { discardTile } from './discard'
+import { resolveComputerRonAfterPlayerDiscard } from './ron'
 import type { TileCopy } from './deck'
 import type { Actor, GameState, GameStatus } from './game-state'
 
@@ -36,6 +37,7 @@ export function discardTileAndSwitchTurn(
   tileToDiscard: TileCopy,
 ): GameState {
   const stateAfterDiscard = discardTile(state, actor, tileToDiscard)
+  const stateAfterComputerRon = resolveComputerRonAfterPlayerDiscard(stateAfterDiscard)
 
-  return switchTurnAfterDiscard(state, stateAfterDiscard)
+  return switchTurnAfterDiscard(state, stateAfterComputerRon)
 }

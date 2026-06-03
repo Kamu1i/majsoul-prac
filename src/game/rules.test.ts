@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { isStandardWinningHand, standardMeldTileCount, standardWinningHandTileCount } from './rules'
+import { isBasicWinningHand, isSevenPairsWinningHand, isStandardWinningHand, standardMeldTileCount, standardWinningHandTileCount } from './rules'
 import { getTileById, type Tile } from './tile'
 
 function tiles(tileIds: Tile['id'][]): Tile[] {
@@ -106,3 +106,73 @@ describe('基础胡牌牌形判断', () => {
     expect(standardMeldTileCount).toBe(3)
   })
 })
+
+describe('七对子胡牌牌形判断', () => {
+  it('识别七组不同对子的合法七对子牌形', () => {
+    const hand = tiles([
+      'souzu-1', 'souzu-1',
+      'souzu-2', 'souzu-2',
+      'souzu-3', 'souzu-3',
+      'souzu-4', 'souzu-4',
+      'souzu-5', 'souzu-5',
+      'dragon-white', 'dragon-white',
+      'dragon-red', 'dragon-red',
+    ])
+
+    expect(isSevenPairsWinningHand(hand)).toBe(true)
+    expect(isBasicWinningHand(hand)).toBe(true)
+  })
+
+  it('不会把四张相同牌错误拆成两组对子', () => {
+    const hand = tiles([
+      'souzu-1', 'souzu-1', 'souzu-1', 'souzu-1',
+      'souzu-2', 'souzu-2',
+      'souzu-3', 'souzu-3',
+      'souzu-4', 'souzu-4',
+      'souzu-5', 'souzu-5',
+      'dragon-white', 'dragon-white',
+    ])
+
+    expect(isSevenPairsWinningHand(hand)).toBe(false)
+  })
+
+  it('六组对子加两张不成对牌不可识别为七对子', () => {
+    const hand = tiles([
+      'souzu-1', 'souzu-1',
+      'souzu-2', 'souzu-2',
+      'souzu-3', 'souzu-3',
+      'souzu-4', 'souzu-4',
+      'souzu-5', 'souzu-5',
+      'dragon-white', 'dragon-white',
+      'souzu-6', 'dragon-red',
+    ])
+
+    expect(isSevenPairsWinningHand(hand)).toBe(false)
+    expect(isBasicWinningHand(hand)).toBe(false)
+  })
+
+  it('七对子判断不破坏标准形判断', () => {
+    const standardHand = tiles([
+      'souzu-1', 'souzu-2', 'souzu-3',
+      'souzu-1', 'souzu-2', 'souzu-3',
+      'souzu-4', 'souzu-5', 'souzu-6',
+      'souzu-7', 'souzu-8', 'souzu-9',
+      'dragon-white', 'dragon-white',
+    ])
+    const sevenPairsHand = tiles([
+      'souzu-1', 'souzu-1',
+      'souzu-2', 'souzu-2',
+      'souzu-3', 'souzu-3',
+      'souzu-4', 'souzu-4',
+      'souzu-5', 'souzu-5',
+      'souzu-6', 'souzu-6',
+      'souzu-7', 'souzu-7',
+    ])
+
+    expect(isStandardWinningHand(standardHand)).toBe(true)
+    expect(isSevenPairsWinningHand(standardHand)).toBe(false)
+    expect(isSevenPairsWinningHand(sevenPairsHand)).toBe(true)
+    expect(isBasicWinningHand(sevenPairsHand)).toBe(true)
+  })
+})
+

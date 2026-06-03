@@ -3,6 +3,7 @@ import { getTileById, tileIds, type SouzuRank, type Tile } from './tile'
 const winningHandTileCount = 14
 const meldTileCount = 3
 const pairTileCount = 2
+const sevenPairsCount = 7
 const maxSameTileCount = 4
 
 function isAllowedTile(tile: Tile): boolean {
@@ -101,14 +102,24 @@ function hasValidTileCounts(counts: ReadonlyMap<Tile['id'], number>): boolean {
   return true
 }
 
-export function isStandardWinningHand(tiles: readonly Tile[]): boolean {
+function getWinningHandCounts(tiles: readonly Tile[]): Map<Tile['id'], number> | null {
   if (tiles.length !== winningHandTileCount || !tiles.every(isAllowedTile)) {
-    return false
+    return null
   }
 
   const counts = countTilesById(tiles)
 
   if (!hasValidTileCounts(counts)) {
+    return null
+  }
+
+  return counts
+}
+
+export function isStandardWinningHand(tiles: readonly Tile[]): boolean {
+  const counts = getWinningHandCounts(tiles)
+
+  if (counts === null) {
     return false
   }
 
@@ -125,6 +136,26 @@ export function isStandardWinningHand(tiles: readonly Tile[]): boolean {
   }
 
   return false
+}
+
+export function isSevenPairsWinningHand(tiles: readonly Tile[]): boolean {
+  const counts = getWinningHandCounts(tiles)
+
+  if (counts === null || counts.size !== sevenPairsCount) {
+    return false
+  }
+
+  for (const count of counts.values()) {
+    if (count !== pairTileCount) {
+      return false
+    }
+  }
+
+  return true
+}
+
+export function isBasicWinningHand(tiles: readonly Tile[]): boolean {
+  return isStandardWinningHand(tiles) || isSevenPairsWinningHand(tiles)
 }
 
 export const standardWinningHandTileCount = winningHandTileCount
