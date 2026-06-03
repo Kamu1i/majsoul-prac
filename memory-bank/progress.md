@@ -131,3 +131,59 @@
 - 玩家初始点数固定为 100000 点。
 - 玩家状态逻辑不得依赖 DOM，也不应放入 `src/main.ts`。
 - `shuffleTilePool()` 已可作为后续发牌和对局初始化时创建洗始牌山的基础能力。
+
+## 2026-06-02：完成第 6 步，定义玩家状态
+
+已完成 `memory-bank/implementation-plan.md` 中的第 6 步：定义玩家和电脑共享的玩家状态。
+
+本次完成内容：
+
+- 新增 `src/game/player.ts`，定义玩家状态模块。
+- 在 `src/game/player.ts` 中新增 `initialPlayerPoints`，统一声明玩家与电脑初始点数为 100000 点。
+- 在 `src/game/player.ts` 中新增 `PlayerState`，包含：
+  - `hand`：当前手牌。
+  - `discardPile`：牌河。
+  - `melds`：副露列表。
+  - `points`：当前点数。
+- 在 `src/game/player.ts` 中新增 `MeldType` 与 `Meld`，为后续吃、碰、杠副露流程预留基础结构。
+- 实现 `createPlayerState()`，用于创建一份新的玩家状态实例。
+- 新增 `src/game/player.test.ts`，覆盖玩家状态初始化与玩家、电脑实例隔离。
+
+验证结果：
+
+- 用户已确认第 6 步测试通过。
+- 用户已确认构建或相关验证通过。
+
+后续注意事项：
+
+- 在用户明确要求前，不开始第 7 步。
+- 第 7 步应实现发牌流程：玩家和电脑各 13 张初始手牌，牌山剩余 22 张。
+- 发牌流程应复用 `src/game/deck.ts` 中的 `createTilePool()` 与 `shuffleTilePool()`。
+- 发牌后手牌应按 `compareTiles()` 的排序规则保持稳定顺序。
+- `PlayerState` 已提供手牌、牌河、副露列表和点数结构，后续发牌、摸牌、打牌、副露、胡牌和计分模块应复用该状态，不要在对局状态或 UI 中重复定义玩家字段。
+
+## 2026-06-03：完成第 7 步，实现发牌流程
+
+已完成 `memory-bank/implementation-plan.md` 中的第 7 步：实现玩家与电脑的初始发牌流程。
+
+本次完成内容：
+
+- 新增 `src/game/deal.ts`，将发牌逻辑从牌池、玩家状态和 UI 中独立出来。
+- 在 `src/game/deal.ts` 中新增 `initialHandTileCount`，统一声明二人对局每人初始手牌为 13 张。
+- 在 `src/game/deal.ts` 中新增 `dealtPlayerCount`，当前固定为玩家与电脑二人。
+- 在 `src/game/deal.ts` 中新增 `sortTileCopies()`，按 `compareTiles()` 的基础牌序和 `copyIndex` 对实体牌稳定排序。
+- 在 `src/game/deal.ts` 中新增 `dealInitialHands()`，从传入牌山前 26 张中分别取 13 张给玩家与电脑，并返回剩余 22 张牌山。
+- `dealInitialHands()` 会为玩家与电脑创建独立 `PlayerState`，不会修改传入的牌山数组。
+- 新增 `src/game/deal.test.ts`，覆盖玩家手牌数量、电脑手牌数量、剩余牌山数量、发牌前后 48 张实体牌守恒、实体牌不重复分配、手牌排序稳定和传入牌山不被修改。
+
+验证结果：
+
+- 用户已确认第 7 步测试通过。
+
+后续注意事项：
+
+- 在用户明确要求前，不开始第 8 步。
+- 第 8 步应定义完整对局状态，整合玩家状态、电脑状态、牌山、当前行动方、对局阶段、最后打出的牌、结束结果、海底标记和河底标记。
+- 第 8 步初始化新对局时可以复用 `createTilePool()`、`shuffleTilePool()` 和 `dealInitialHands()`，避免在对局状态中重复发牌逻辑。
+- `dealInitialHands()` 当前只接收外部传入的牌山，不负责创建牌池或洗牌；这让测试可以传入固定牌山，也让后续对局初始化自行决定随机来源。
+- `src/main.ts` 仍不应引入发牌、胡牌或计分逻辑。

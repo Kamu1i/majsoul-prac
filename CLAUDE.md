@@ -28,11 +28,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## 认知规则
 你现在得把自己当成一个linux程序员，你的一切操作都是在wsl虚拟机里进行的，不允许将读入或者npm安装之类的操作与windows混淆，也不允许用windows的gbk来读linux的utf8，也就是你现在默认的文件格式应该是utf8
 
-## 命令执行铁律（禁止跨界）
+<!-- ## 命令执行铁律（禁止跨界）
 - 你当前已经在纯正的 Linux (WSL) 虚拟机内部运行。
 - **严禁**执行任何带有 `wsl` 前缀的命令（例如严禁执行 `wsl -e ...`）。
 - 当需要运行测试（`npm run test`）或构建项目（`npm run build`）或`npm run dev`时，你**必须且只能**直接执行纯 Linux 命令（如直接运行 `npm run test`），严禁借助 Windows 宿主机的任何工具链。
-- 如果你在测试时遇到困难，立刻停下来请求人类在原生 Linux 终端里手动运行！
+- 如果你在测试时遇到困难，立刻停下来请求人类在原生 Linux 终端里手动运行！ -->
+
+
 ## 语言规则
 
 除本文件开头由初始化命令要求保留的固定英文说明外，本仓库的协作说明、规则描述、文档补充与面向用户的说明应全部使用中文。
