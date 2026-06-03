@@ -91,7 +91,7 @@ export function renderApp(container: HTMLElement, state: GameState): void {
       </section>
 
       <section class="action-panel" aria-label="操作按钮区域">
-        <button type="button" disabled>摸牌</button>
+        <button type="button" data-action="draw" ${state.status === 'player-turn' && state.currentActor === 'player' && state.player.hand.length === 13 ? '' : 'disabled'}>摸牌</button>
         <button type="button" disabled>打牌</button>
         <button type="button" disabled>吃</button>
         <button type="button" disabled>碰</button>

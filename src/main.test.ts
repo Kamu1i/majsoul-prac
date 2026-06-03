@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { createNewGameState, type GameState } from './game/game-state'
 import { discardTile } from './game/discard'
 import { initialGameState } from './main'
+import { bindAppEvents } from './ui/events'
 import { renderApp } from './ui/render'
 
 function fixedRandomSource(): number {
@@ -102,5 +103,91 @@ describe('应用入口', () => {
 
     expect(container.querySelectorAll('[aria-label="玩家手牌"] button.tile-button')).toHaveLength(13)
     expect(container.querySelectorAll('.hidden-hand .tile-back')).toHaveLength(13)
+  })
+
+  it('玩家回合点击摸牌后，玩家手牌增加 1 张并减少牌山', () => {
+    const container = document.createElement('div')
+    const state = createNewGameState(fixedRandomSource)
+
+    renderApp(container, state)
+    const unbindEvents = bindAppEvents(container, state)
+    container.querySelector<HTMLButtonElement>('[data-action="draw"]')?.click()
+
+    expect(container.querySelectorAll('[aria-label="玩家手牌"] button.tile-button')).toHaveLength(14)
+    expect(container.textContent).toContain('21 张')
+    unbindEvents()
+  })
+
+  it('玩家摸牌前点击手牌不会改变状态', () => {
+    const container = document.createElement('div')
+    const state = createNewGameState(fixedRandomSource)
+
+    renderApp(container, state)
+    const initialText = container.textContent
+    const unbindEvents = bindAppEvents(container, state)
+    container.querySelector<HTMLButtonElement>('[aria-label="玩家手牌"] button.tile-button')?.click()
+
+    expect(container.textContent).toBe(initialText)
+    unbindEvents()
+  })
+
+  it('玩家摸牌后点击手牌，该牌进入玩家牌河并触发电脑基础回合', () => {
+    const container = document.createElement('div')
+    const state = createNewGameState(fixedRandomSource)
+    const tileToDiscard = state.player.hand[0]
+    const stateWithoutComputerResponse: GameState = {
+      ...state,
+      computer: {
+        ...state.computer,
+        hand: [],
+      },
+    }
+
+    renderApp(container, stateWithoutComputerResponse)
+    const unbindEvents = bindAppEvents(container, stateWithoutComputerResponse)
+    container.querySelector<HTMLButtonElement>('[data-action="draw"]')?.click()
+    container.querySelector<HTMLButtonElement>('[aria-label="玩家手牌"] button.tile-button')?.click()
+
+    expect(container.querySelector('[aria-label="玩家牌河"]')?.textContent).toContain(tileToDiscard.tile.label)
+    expect(container.querySelector('[aria-label="电脑牌河"]')?.textContent).not.toBe('暂无弃牌')
+    expect(container.textContent).toContain('当前回合：玩家')
+    unbindEvents()
+  })
+
+  it('电脑回合期间玩家点击手牌不会改变状态', () => {
+    const container = document.createElement('div')
+    const state = createNewGameState(fixedRandomSource)
+    const computerTurnState: GameState = {
+      ...state,
+      status: 'computer-turn',
+      currentActor: 'computer',
+    }
+
+    renderApp(container, computerTurnState)
+    const initialText = container.textContent
+    const unbindEvents = bindAppEvents(container, computerTurnState)
+    container.querySelector<HTMLButtonElement>('[aria-label="玩家手牌"] button.tile-button')?.click()
+
+    expect(container.textContent).toBe(initialText)
+    unbindEvents()
+  })
+
+  it('对局结束后玩家点击手牌不会改变状态', () => {
+    const container = document.createElement('div')
+    const state = createNewGameState(fixedRandomSource)
+    const endedState: GameState = {
+      ...state,
+      status: 'ended',
+      currentActor: null,
+      endResult: { type: 'exhaustive-draw' },
+    }
+
+    renderApp(container, endedState)
+    const initialText = container.textContent
+    const unbindEvents = bindAppEvents(container, endedState)
+    container.querySelector<HTMLButtonElement>('[aria-label="玩家手牌"] button.tile-button')?.click()
+
+    expect(container.textContent).toBe(initialText)
+    unbindEvents()
   })
 })

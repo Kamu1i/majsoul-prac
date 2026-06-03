@@ -156,8 +156,3 @@ index.html
 ## 补充规则
 
 整个开发过程严格遵守模块化（多文件）和禁止单体巨文件（monolith）的要求，代码可读性要高
-
-# 重要提示：
-# 写任何代码前必须完整阅读 memory-bank/@architecture.md（包含完整数据库结构）
-# 写任何代码前必须完整阅读 memory-bank/@game-design-document.md
-# 每完成一个重大功能或里程碑后，必须更新 memory-bank/@architecture.md

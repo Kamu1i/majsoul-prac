@@ -9,5 +9,5 @@ const app = document.querySelector<HTMLDivElement>('#app')
 
 if (app) {
   renderApp(app, initialGameState)
-  bindAppEvents(app)
+  bindAppEvents(app, initialGameState)
 }
