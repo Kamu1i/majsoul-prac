@@ -70,11 +70,11 @@ export function renderApp(container: HTMLElement, state: GameState): void {
           <div class="discard-board">
             <section aria-labelledby="computer-discards-title">
               <h3 id="computer-discards-title">电脑牌河</h3>
-              <div class="tile-row discard-row">${renderTileRow(state.computer.discardPile, '暂无弃牌')}</div>
+              <div class="tile-row discard-row" aria-label="电脑牌河">${renderTileRow(state.computer.discardPile, '暂无弃牌')}</div>
             </section>
             <section aria-labelledby="player-discards-title">
               <h3 id="player-discards-title">玩家牌河</h3>
-              <div class="tile-row discard-row">${renderTileRow(state.player.discardPile, '暂无弃牌')}</div>
+              <div class="tile-row discard-row" aria-label="玩家牌河">${renderTileRow(state.player.discardPile, '暂无弃牌')}</div>
             </section>
           </div>
         </section>
@@ -85,7 +85,7 @@ export function renderApp(container: HTMLElement, state: GameState): void {
             <span>${state.player.hand.length} 张手牌</span>
           </div>
           <div class="tile-row hand-row" aria-label="玩家手牌">
-            ${renderTileRow(state.player.hand, '暂无手牌')}
+            ${renderPlayerHand(state.player.hand)}
           </div>
         </section>
       </section>
@@ -108,6 +108,19 @@ function renderHiddenHand(tileCount: number): string {
   }
 
   return Array.from({ length: tileCount }, () => '<span class="tile tile-back">牌背</span>').join('')
+}
+
+function renderPlayerHand(tiles: readonly TileCopy[]): string {
+  if (tiles.length === 0) {
+    return '<span class="empty-text">暂无手牌</span>'
+  }
+
+  return tiles
+    .map(
+      (tile) =>
+        `<button type="button" class="tile tile-button" data-tile-id="${tile.tile.id}" data-copy-index="${tile.copyIndex}" aria-label="打出${tile.tile.label}">${tile.tile.label}</button>`,
+    )
+    .join('')
 }
 
 function renderTileRow(tiles: readonly TileCopy[], emptyText: string): string {

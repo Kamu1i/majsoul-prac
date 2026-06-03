@@ -173,6 +173,17 @@ button {
   box-sizing: border-box;
 }
 
+.tile-button {
+  cursor: pointer;
+}
+
+.tile-button:hover,
+.tile-button:focus-visible {
+  border-color: #2563eb;
+  outline: 2px solid #bfdbfe;
+  outline-offset: 2px;
+}
+
 .tile-back {
   background: #1d4ed8;
   color: transparent;
