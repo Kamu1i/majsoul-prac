@@ -1,5 +1,6 @@
+import type { Actor, GameState, ScoreSettlement } from './game-state'
 import { evaluateWinningHand, type WinEvaluation } from './ron'
-import type { Actor, GameState } from './game-state'
+import { createScoreSettlement } from './scoring'
 
 function getActorHand(state: GameState, actor: Actor) {
   return actor === 'player' ? state.player.hand : state.computer.hand
@@ -30,19 +31,31 @@ export function declareTsumo(state: GameState, winner: Actor): GameState {
     return state
   }
 
+  const endResult = {
+    type: 'win' as const,
+    winner,
+    loser: null,
+    method: 'tsumo' as const,
+    yaku: tsumoEvaluation.yaku,
+    isHaitei: state.isHaitei,
+    isHoutei: false,
+  }
+  const scoreSettlement: ScoreSettlement = createScoreSettlement(endResult, state)
+
   return {
     ...state,
+    player: {
+      ...state.player,
+      points: scoreSettlement.after.player,
+    },
+    computer: {
+      ...state.computer,
+      points: scoreSettlement.after.computer,
+    },
     status: 'ended',
     currentActor: null,
-    endResult: {
-      type: 'win',
-      winner,
-      loser: null,
-      method: 'tsumo',
-      yaku: tsumoEvaluation.yaku,
-      isHaitei: state.isHaitei,
-      isHoutei: false,
-    },
+    endResult,
+    scoreSettlement,
   }
 }
 

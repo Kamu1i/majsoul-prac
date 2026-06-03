@@ -616,3 +616,36 @@
 - 流局结算应保持双方点数不变，并记录结算原因、得分变化和结算后点数。
 - 第 19 步可读取 `endResult.type` 区分 `win` 与 `exhaustive-draw`，读取 `endResult.method` 区分自摸与荣和。
 
+## 2026-06-03：完成第 19 步，实现最小基础计分
+
+已完成 `memory-bank/implementation-plan.md` 中的第 19 步：实现最小基础计分。
+
+本次完成内容：
+
+- 新增 `src/game/scoring.ts`，将固定分值基础结算独立为游戏核心计分模块。
+- 在 `src/game/scoring.ts` 中新增 `ronPointDelta` 和 `tsumoPointDelta`，分别声明荣和固定 20000 点、自摸固定 15000 点。
+- 在 `src/game/scoring.ts` 中新增 `createScoreSettlement(endResult, state)`：
+  - 荣和时胡牌方增加 20000 点，放铳方扣除 20000 点。
+  - 自摸时胡牌方增加 15000 点，另一方扣除 15000 点。
+  - 流局时双方点数不变。
+  - 统一记录结算原因、双方点数变化和结算后点数。
+- 在 `src/game/scoring.ts` 中新增 `applyScoreSettlement()` 与 `settleGameEnd()`，为后续流程或 UI 复用结算逻辑提供入口。
+- 更新 `src/game/game-state.ts`，新增 `ScoreReason`、`ScoreDelta`、`ScoreAfter`、`ScoreSettlement` 类型，并在 `GameState` 中新增 `scoreSettlement` 字段。
+- 更新 `src/game/ron.ts`，荣和成功后立即生成结算记录并更新双方点数。
+- 更新 `src/game/tsumo.ts`，自摸成功后立即生成结算记录并更新双方点数。
+- 更新 `src/game/draw.ts`，空牌山流局时生成零分差结算记录。
+- 新增 `src/game/scoring.test.ts`，覆盖玩家荣和、电脑荣和、玩家自摸、电脑自摸、流局零分差和二人零和结算。
+- 更新 `src/game/ron.test.ts`、`src/game/tsumo.test.ts`、`src/game/draw.test.ts`，补充结束流程中的结算记录断言。
+
+验证结果：
+
+- 用户已确认 `npm run test -- src/game/scoring.test.ts` 通过。
+- 用户已确认 `npm run test` 通过。
+- 用户已确认 `npm run build` 通过。
+
+后续注意事项：
+
+- 在用户明确要求前，不开始第 20 步。
+- 第 20 步应实现吃、碰、杠副露流程，并注意副露后的胡牌判断仍需满足有效牌形和有役要求。
+- 当前基础计分使用固定分值，不包含番符、亲子差异、供托、场棒或多局制结算。
+- 后续 UI 展示对局结果时应优先读取 `state.scoreSettlement` 展示结算原因、双方点数变化和结算后点数。

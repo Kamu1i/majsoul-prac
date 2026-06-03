@@ -10,6 +10,18 @@ export type WinMethod = 'ron' | 'tsumo'
 
 export type Yaku = 'riichi' | 'tsumo' | 'yakuhai' | 'tanyao' | 'seven-pairs' | 'haitei' | 'houtei'
 
+export type ScoreReason = WinMethod | 'exhaustive-draw'
+
+export type ScoreDelta = Readonly<Record<Actor, number>>
+
+export type ScoreAfter = Readonly<Record<Actor, number>>
+
+export type ScoreSettlement = Readonly<{
+  reason: ScoreReason
+  delta: ScoreDelta
+  after: ScoreAfter
+}>
+
 export type GameEndResult = Readonly<{
   type: 'win'
   winner: Actor
@@ -37,6 +49,7 @@ export interface GameState {
   readonly currentActor: Actor | null
   readonly lastDiscard: DiscardRecord | null
   readonly endResult: GameEndResult | null
+  readonly scoreSettlement: ScoreSettlement | null
   readonly isHaitei: boolean
   readonly isHoutei: boolean
 }
@@ -56,6 +69,7 @@ export function createNewGameState(randomSource?: RandomSource): GameState {
     currentActor: 'player',
     lastDiscard: null,
     endResult: null,
+    scoreSettlement: null,
     isHaitei: false,
     isHoutei: false,
   }

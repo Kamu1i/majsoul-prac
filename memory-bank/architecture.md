@@ -98,3 +98,88 @@
 - `src/game/discard.test.ts` 验证流局结束后不能继续打牌。
 - `src/game/turn.test.ts` 已覆盖已结束状态不会继续切换回合。
 
+## 第 19 步新增架构说明
+
+### `src/game/scoring.ts`
+
+基础固定分值计分模块。
+
+职责：
+
+- 导出 `ronPointDelta`，声明当前基础荣和固定分值为 20000 点。
+- 导出 `tsumoPointDelta`，声明当前基础自摸固定分值为 15000 点。
+- 导出 `createScoreSettlement(endResult, state)`，根据结束结果与当前双方点数生成结算记录。
+- 导出 `applyScoreSettlement(state, settlement)`，把已生成的结算记录应用到双方点数。
+- 导出 `settleGameEnd(state)`，为已有 `endResult` 的状态生成并应用结算，便于后续流程复用。
+
+当前结算规则：
+
+- 荣和：胡牌方增加 20000 点，放铳方扣除 20000 点。
+- 自摸：胡牌方增加 15000 点，另一方扣除 15000 点。
+- 流局：双方点数变化均为 0。
+- 结算记录统一包含：
+  - `reason`：`ron`、`tsumo` 或 `exhaustive-draw`。
+  - `delta`：玩家与电脑各自点数变化。
+  - `after`：结算后的玩家与电脑点数。
+
+设计约束：
+
+- `scoring.ts` 不依赖 DOM 或 UI 事件。
+- 当前只实现基础固定分值，不实现番符、亲子差异、供托、场棒、多局制或完整日麻点数表。
+- `scoring.ts` 只根据 `GameEndResult` 计算点数，不重新判断胡牌牌形或役种。
+
+### `src/game/game-state.ts`
+
+第 19 步新增与计分相关的状态类型：
+
+- `ScoreReason`：结算原因，包含荣和、自摸和流局。
+- `ScoreDelta`：玩家与电脑点数变化。
+- `ScoreAfter`：结算后的玩家与电脑点数。
+- `ScoreSettlement`：完整结算记录。
+- `GameState.scoreSettlement`：当前对局结束后的结算记录；新对局初始化为 `null`。
+
+后续 UI 展示对局结果时，应优先读取 `state.scoreSettlement`，不要重复推导点数变化。
+
+### `src/game/ron.ts`
+
+第 19 步新增的计分衔接：
+
+- `declareRon()` 在荣和成功时创建 `endResult` 后，调用 `createScoreSettlement()` 生成结算记录。
+- 荣和结束状态会同步更新 `player.points` 与 `computer.points`。
+- 荣和结束状态会写入 `scoreSettlement`，供测试和 UI 展示使用。
+
+### `src/game/tsumo.ts`
+
+第 19 步新增的计分衔接：
+
+- `declareTsumo()` 在自摸成功时创建 `endResult` 后，调用 `createScoreSettlement()` 生成结算记录。
+- 自摸结束状态会同步更新 `player.points` 与 `computer.points`。
+- 自摸结束状态会写入 `scoreSettlement`，并继续保持 `loser: null` 表示非放铳结算。
+
+### `src/game/draw.ts`
+
+第 19 步新增的流局计分衔接：
+
+- 空牌山触发流局时，`drawTile()` 会创建 `endResult: { type: 'exhaustive-draw' }`。
+- 流局结束状态会写入零分差 `scoreSettlement`。
+- 流局仍不改变双方 `points`。
+
+### `src/game/scoring.test.ts`
+
+基础计分测试文件。
+
+职责：
+
+- 验证玩家荣和时玩家 +20000、电脑 -20000。
+- 验证电脑荣和时电脑 +20000、玩家 -20000。
+- 验证玩家自摸时玩家 +15000、电脑 -15000。
+- 验证电脑自摸时电脑 +15000、玩家 -15000。
+- 验证流局时双方点数不变。
+- 验证结算前后双方点数变化符合二人零和预期。
+
+### 第 19 步相关测试覆盖
+
+- `src/game/scoring.test.ts` 覆盖独立计分模块的固定分值规则。
+- `src/game/ron.test.ts` 覆盖荣和结束流程写入 `scoreSettlement`。
+- `src/game/tsumo.test.ts` 覆盖自摸结束流程写入 `scoreSettlement`。
+- `src/game/draw.test.ts` 覆盖流局结束流程写入零分差 `scoreSettlement`。

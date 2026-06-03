@@ -1,6 +1,7 @@
 import type { TileCopy } from './deck'
 import type { Actor, GameState } from './game-state'
 import type { PlayerState } from './player'
+import { createScoreSettlement } from './scoring'
 
 function drawForActor(actorState: PlayerState, drawnTile: TileCopy): PlayerState {
   return {
@@ -31,11 +32,14 @@ export function drawTile(state: GameState): GameState {
   const [drawnTile, ...remainingWall] = state.wall
 
   if (drawnTile === undefined) {
+    const endResult = { type: 'exhaustive-draw' as const }
+
     return {
       ...state,
       status: 'ended',
       currentActor: null,
-      endResult: { type: 'exhaustive-draw' },
+      endResult,
+      scoreSettlement: createScoreSettlement(endResult, state),
       isHaitei: false,
     }
   }

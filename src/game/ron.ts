@@ -1,6 +1,7 @@
 import type { TileCopy } from './deck'
+import type { Actor, GameState, ScoreSettlement, Yaku } from './game-state'
 import { isBasicWinningHand, isSevenPairsWinningHand } from './rules'
-import type { Actor, GameState, Yaku } from './game-state'
+import { createScoreSettlement } from './scoring'
 
 export type WinEvaluationContext = Readonly<{
   method: 'ron' | 'tsumo'
@@ -118,19 +119,31 @@ export function declareRon(state: GameState, winner: Actor): GameState {
     return state
   }
 
+  const endResult = {
+    type: 'win' as const,
+    winner,
+    loser: state.lastDiscard.actor,
+    method: 'ron' as const,
+    yaku: ronEvaluation.yaku,
+    isHaitei: false,
+    isHoutei: state.isHoutei,
+  }
+  const scoreSettlement: ScoreSettlement = createScoreSettlement(endResult, state)
+
   return {
     ...state,
+    player: {
+      ...state.player,
+      points: scoreSettlement.after.player,
+    },
+    computer: {
+      ...state.computer,
+      points: scoreSettlement.after.computer,
+    },
     status: 'ended',
     currentActor: null,
-    endResult: {
-      type: 'win',
-      winner,
-      loser: state.lastDiscard.actor,
-      method: 'ron',
-      yaku: ronEvaluation.yaku,
-      isHaitei: false,
-      isHoutei: state.isHoutei,
-    },
+    endResult,
+    scoreSettlement,
   }
 }
 

@@ -143,6 +143,17 @@ describe('自摸入口', () => {
       isHaitei: false,
       isHoutei: false,
     })
+    expect(nextState.scoreSettlement).toEqual({
+      reason: 'tsumo',
+      delta: {
+        player: -15000,
+        computer: 15000,
+      },
+      after: {
+        player: 85000,
+        computer: 115000,
+      },
+    })
   })
 
   it('海底摸月可作为役种参与判断', () => {
@@ -203,6 +214,17 @@ describe('自摸入口', () => {
       yaku: ['tsumo', 'yakuhai'],
       isHaitei: false,
       isHoutei: false,
+    })
+    expect(nextState.scoreSettlement).toEqual({
+      reason: 'tsumo',
+      delta: {
+        player: 15000,
+        computer: -15000,
+      },
+      after: {
+        player: 115000,
+        computer: 85000,
+      },
     })
   })
 })

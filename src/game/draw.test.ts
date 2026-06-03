@@ -80,6 +80,17 @@ describe('drawTile', () => {
     expect(nextState.status).toBe('ended')
     expect(nextState.currentActor).toBeNull()
     expect(nextState.endResult).toEqual({ type: 'exhaustive-draw' })
+    expect(nextState.scoreSettlement).toEqual({
+      reason: 'exhaustive-draw',
+      delta: {
+        player: 0,
+        computer: 0,
+      },
+      after: {
+        player: 100000,
+        computer: 100000,
+      },
+    })
   })
 
   it('keeps both players points unchanged when the game ends as exhaustive draw', () => {

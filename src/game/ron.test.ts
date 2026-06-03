@@ -182,6 +182,17 @@ describe('荣和入口', () => {
       isHaitei: false,
       isHoutei: false,
     })
+    expect(nextState.scoreSettlement).toEqual({
+      reason: 'ron',
+      delta: {
+        player: -20000,
+        computer: 20000,
+      },
+      after: {
+        player: 80000,
+        computer: 120000,
+      },
+    })
   })
 
   it('河底最后弃牌可作为役种参与判断', () => {
@@ -235,6 +246,17 @@ describe('荣和入口', () => {
       yaku: ['yakuhai'],
       isHaitei: false,
       isHoutei: false,
+    })
+    expect(nextState.scoreSettlement).toEqual({
+      reason: 'ron',
+      delta: {
+        player: 20000,
+        computer: -20000,
+      },
+      after: {
+        player: 120000,
+        computer: 80000,
+      },
     })
   })
 })
