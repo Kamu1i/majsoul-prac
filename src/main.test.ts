@@ -412,4 +412,80 @@ describe('应用入口', () => {
     expect(container.querySelector<HTMLButtonElement>('[data-action="win"]')?.disabled).toBe(true)
     unbindEvents()
   })
+
+  it('对局进行中点击新对局后重置手牌、牌河、点数和牌山', () => {
+    const container = document.createElement('div')
+    const state = createNewGameState(fixedRandomSource)
+    const stateInProgress: GameState = {
+      ...state,
+      player: {
+        ...state.player,
+        hand: state.player.hand.slice(0, 14),
+        discardPile: [state.player.hand[0]],
+        points: 115000,
+      },
+      computer: {
+        ...state.computer,
+        discardPile: [state.computer.hand[0]],
+        points: 85000,
+      },
+      wall: state.wall.slice(1),
+    }
+
+    renderApp(container, stateInProgress)
+    const unbindEvents = bindAppEvents(container, stateInProgress)
+    container.querySelector<HTMLButtonElement>('[data-action="new-game"]')?.click()
+
+    const scoreValues = Array.from(container.querySelectorAll('.score-card strong')).map((element) => element.textContent)
+
+    expect(container.querySelector('.app-shell')?.getAttribute('data-status')).toBe('player-turn')
+    expect(container.querySelectorAll('[aria-label="玩家手牌"] button.tile-button')).toHaveLength(13)
+    expect(container.querySelector('[aria-label="玩家牌河"]')?.textContent).toBe('暂无弃牌')
+    expect(container.querySelector('[aria-label="电脑牌河"]')?.textContent).toBe('暂无弃牌')
+    expect(scoreValues).toEqual(['100000', '100000'])
+    expect(container.textContent).toContain('22 张')
+    unbindEvents()
+  })
+
+  it('对局结束后点击新对局可重新开始', () => {
+    const container = document.createElement('div')
+    const state: GameState = {
+      ...createNewGameState(fixedRandomSource),
+      status: 'ended',
+      currentActor: null,
+      endResult: { type: 'exhaustive-draw' },
+      player: {
+        ...createNewGameState(fixedRandomSource).player,
+        discardPile: tileCopies(['souzu-1']),
+        points: 120000,
+      },
+      computer: {
+        ...createNewGameState(fixedRandomSource).computer,
+        discardPile: tileCopies(['souzu-2']),
+        points: 80000,
+      },
+      scoreSettlement: {
+        reason: 'ron',
+        delta: { player: 20000, computer: -20000 },
+        after: { player: 120000, computer: 80000 },
+      },
+    }
+
+    renderApp(container, state)
+    const unbindEvents = bindAppEvents(container, state)
+    container.querySelector<HTMLButtonElement>('[data-action="new-game"]')?.click()
+
+    const scoreValues = Array.from(container.querySelectorAll('.score-card strong')).map((element) => element.textContent)
+
+    expect(container.querySelector('.app-shell')?.getAttribute('data-status')).toBe('player-turn')
+    expect(container.textContent).toContain('当前回合：玩家，请摸牌。')
+    expect(container.textContent).not.toContain('牌山摸完，本局流局。')
+    expect(container.textContent).not.toContain('点数变化')
+    expect(container.querySelectorAll('[aria-label="玩家手牌"] button.tile-button')).toHaveLength(13)
+    expect(container.querySelector('[aria-label="玩家牌河"]')?.textContent).toBe('暂无弃牌')
+    expect(container.querySelector('[aria-label="电脑牌河"]')?.textContent).toBe('暂无弃牌')
+    expect(scoreValues).toEqual(['100000', '100000'])
+    expect(container.textContent).toContain('22 张')
+    unbindEvents()
+  })
 })

@@ -1,5 +1,6 @@
 import type { TileCopy } from '../game/deck'
 import type { GameState } from '../game/game-state'
+import { createNewGameState } from '../game/game-state'
 import { drawTile } from '../game/draw'
 import { playComputerTurn } from '../game/computer-turn'
 import { discardTileAndSwitchTurn } from '../game/turn'
@@ -55,6 +56,12 @@ export function bindAppEvents(container: HTMLElement, initialState: GameState): 
     const clickedElement = event.target
 
     if (!(clickedElement instanceof HTMLButtonElement)) {
+      return
+    }
+
+    if (clickedElement.dataset.action === 'new-game') {
+      currentState = createNewGameState()
+      renderApp(container, currentState)
       return
     }
 
