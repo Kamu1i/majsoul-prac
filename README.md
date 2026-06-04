@@ -16,6 +16,6 @@ UI界面优化调整，考虑增加胡牌特效
 
 电脑出牌逻辑强化
 
-## vibecoing声明
+## vibecoding声明
 
 本项目纯粹是个人首次接触vibecoding练习所用，图一乐
