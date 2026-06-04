@@ -61,6 +61,16 @@ function withComputerDiscard(playerHand: TileCopy[], tileToDiscard: TileCopy): G
   )
 }
 
+function getActionButton(container: HTMLElement, action: string): HTMLButtonElement {
+  const button = container.querySelector<HTMLButtonElement>(`[data-action="${action}"]`)
+
+  if (button === null) {
+    throw new Error(`找不到 ${action} 按钮`)
+  }
+
+  return button
+}
+
 describe('应用入口', () => {
   it('导出初始化后的对局状态', () => {
     expect(initialGameState.status).toBe('player-turn')
@@ -486,6 +496,124 @@ describe('应用入口', () => {
     expect(container.querySelector('[aria-label="电脑牌河"]')?.textContent).toBe('暂无弃牌')
     expect(scoreValues).toEqual(['100000', '100000'])
     expect(container.textContent).toContain('22 张')
+    unbindEvents()
+  })
+
+  it('电脑最后弃牌可被玩家吃时，吃按钮启用并可执行吃牌', () => {
+    const container = document.createElement('div')
+    const state = withComputerDiscard(tileCopies(['souzu-1', 'souzu-2', 'souzu-5', 'souzu-6']), tileCopies(['souzu-3'])[0])
+
+    renderApp(container, state)
+    expect(getActionButton(container, 'chi').disabled).toBe(false)
+    expect(container.textContent).toContain('玩家可吃')
+
+    const unbindEvents = bindAppEvents(container, state)
+    getActionButton(container, 'chi').click()
+
+    expect(container.querySelector('[aria-label="玩家副露"]')?.textContent).toContain('吃：1索2索3索')
+    expect(container.querySelector('[aria-label="电脑牌河"]')?.textContent).toBe('暂无弃牌')
+    expect(container.textContent).toContain('当前回合：玩家，请打出一张牌。')
+    expect(container.querySelectorAll('[aria-label="玩家手牌"] button.tile-button')).toHaveLength(2)
+    unbindEvents()
+  })
+
+  it('电脑最后弃牌可被玩家碰时，碰按钮启用并可执行碰牌', () => {
+    const container = document.createElement('div')
+    const state = withComputerDiscard(tileCopies(['dragon-white', 'dragon-white', 'souzu-5']), tileCopies(['dragon-white'])[0])
+
+    renderApp(container, state)
+    expect(getActionButton(container, 'pon').disabled).toBe(false)
+
+    const unbindEvents = bindAppEvents(container, state)
+    getActionButton(container, 'pon').click()
+
+    expect(container.querySelector('[aria-label="玩家副露"]')?.textContent).toContain('碰：白白白')
+    expect(container.querySelectorAll('[aria-label="玩家手牌"] button.tile-button')).toHaveLength(1)
+    unbindEvents()
+  })
+
+  it('电脑最后弃牌可被玩家明杠时，杠按钮启用并可执行明杠', () => {
+    const container = document.createElement('div')
+    const state = withComputerDiscard(
+      tileCopies(['dragon-white', 'dragon-white', 'dragon-white', 'souzu-5']),
+      tileCopies(['dragon-white'])[0],
+    )
+
+    renderApp(container, state)
+    expect(getActionButton(container, 'kan').disabled).toBe(false)
+    expect(container.textContent).toContain('玩家可明杠')
+
+    const unbindEvents = bindAppEvents(container, state)
+    getActionButton(container, 'kan').click()
+
+    expect(container.querySelector('[aria-label="玩家副露"]')?.textContent).toContain('明杠：白白白白')
+    expect(container.querySelectorAll('[aria-label="玩家手牌"] button.tile-button')).toHaveLength(1)
+    unbindEvents()
+  })
+
+  it('玩家自己回合存在暗杠候选时，杠按钮可执行暗杠', () => {
+    const container = document.createElement('div')
+    const state = withActorHand(createNewGameState(fixedRandomSource), 'player', tileCopies([
+      'dragon-white', 'dragon-white', 'dragon-white', 'dragon-white',
+      'souzu-1', 'souzu-2', 'souzu-3', 'souzu-4', 'souzu-5',
+      'souzu-6', 'souzu-7', 'souzu-8', 'souzu-9', 'dragon-red',
+    ]))
+
+    renderApp(container, state)
+    expect(getActionButton(container, 'kan').disabled).toBe(false)
+    expect(container.textContent).toContain('玩家可暗杠')
+
+    const unbindEvents = bindAppEvents(container, state)
+    getActionButton(container, 'kan').click()
+
+    expect(container.querySelector('[aria-label="玩家副露"]')?.textContent).toContain('暗杠：白白白白')
+    expect(container.querySelectorAll('[aria-label="玩家手牌"] button.tile-button')).toHaveLength(10)
+    unbindEvents()
+  })
+
+  it('不满足副露条件时，吃碰杠按钮保持禁用且点击不改变状态', () => {
+    const container = document.createElement('div')
+    const state = withActorHand(createNewGameState(fixedRandomSource), 'player', tileCopies([
+      'souzu-1', 'souzu-2', 'souzu-3', 'souzu-4', 'souzu-5', 'souzu-6', 'souzu-7',
+      'souzu-8', 'souzu-9', 'dragon-white', 'dragon-white', 'dragon-red', 'dragon-red',
+    ]))
+
+    renderApp(container, state)
+    const initialText = container.textContent
+    const unbindEvents = bindAppEvents(container, state)
+
+    expect(getActionButton(container, 'chi').disabled).toBe(true)
+    expect(getActionButton(container, 'pon').disabled).toBe(true)
+    expect(getActionButton(container, 'kan').disabled).toBe(true)
+    getActionButton(container, 'chi').click()
+    getActionButton(container, 'pon').click()
+    getActionButton(container, 'kan').click()
+
+    expect(container.textContent).toBe(initialText)
+    unbindEvents()
+  })
+
+  it('对局结束后吃碰杠按钮禁用且点击不改变状态', () => {
+    const container = document.createElement('div')
+    const state: GameState = {
+      ...withComputerDiscard(tileCopies(['souzu-1', 'souzu-2']), tileCopies(['souzu-3'])[0]),
+      status: 'ended',
+      currentActor: null,
+      endResult: { type: 'exhaustive-draw' },
+    }
+
+    renderApp(container, state)
+    const initialText = container.textContent
+    const unbindEvents = bindAppEvents(container, state)
+
+    expect(getActionButton(container, 'chi').disabled).toBe(true)
+    expect(getActionButton(container, 'pon').disabled).toBe(true)
+    expect(getActionButton(container, 'kan').disabled).toBe(true)
+    getActionButton(container, 'chi').click()
+    getActionButton(container, 'pon').click()
+    getActionButton(container, 'kan').click()
+
+    expect(container.textContent).toBe(initialText)
     unbindEvents()
   })
 })

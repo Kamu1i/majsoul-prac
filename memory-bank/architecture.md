@@ -568,3 +568,100 @@
 
 - 第 26 步应补充核心规则单元测试覆盖，不需要改变新对局按钮的状态管理方式。
 - 玩家副露按钮仍未接入 UI，后续应继续保持 `render.ts` 展示按钮、`events.ts` 连接事件、`src/game/meld.ts` 执行规则的分层方式。
+
+## 第 26 步新增架构说明
+
+### `src/ui/render.ts`
+
+玩家副露交互渲染模块。
+
+第 26 步扩展后的职责：
+
+- 操作按钮区域中的吃、碰、杠按钮现在接入真实副露候选状态。
+- 吃按钮读取 `getChiCandidates(state, 'player')`，玩家可吃时启用。
+- 碰按钮读取 `getPonCandidate(state, 'player')`，玩家可碰时启用。
+- 杠按钮读取 `getOpenKanCandidate(state, 'player')` 与 `getClosedKanCandidates(state, 'player')`，玩家可明杠或暗杠时启用。
+- 状态面板新增副露提示：可显示玩家可吃、可碰、可明杠、可暗杠或暂无可用副露。
+- 玩家区与电脑区新增副露展示，按副露类型显示吃、碰、明杠、暗杠及对应牌组。
+- 摸牌按钮现在使用玩家有效牌数判断是否启用：暗手牌数量加副露有效张数等于 13 时可以摸牌；杠按 3 张有效牌计算。
+
+设计约束：
+
+- `render.ts` 仍只读取 `GameState`，不执行 `declareChi()`、`declarePon()`、`declareOpenKan()` 或 `declareClosedKan()`。
+- 副露候选判断属于只读规则查询，渲染层只用它决定按钮状态和提示文案。
+- 杠在 UI 的有效牌数计算中按刻子 3 张处理，符合后续胡牌牌形判断中杠按面子处理的规则。
+
+### `src/ui/events.ts`
+
+玩家副露按钮事件绑定模块。
+
+第 26 步扩展后的职责：
+
+- 在既有事件委托中处理：
+  - `data-action="chi"`：调用 `declareChi(currentState, 'player')`。
+  - `data-action="pon"`：调用 `declarePon(currentState, 'player')`。
+  - `data-action="kan"`：优先调用 `declareOpenKan(currentState, 'player')`；没有明杠候选时调用 `declareClosedKan(currentState, 'player')`。
+- 玩家副露成功后更新闭包中的 `currentState`，并调用 `renderApp(container, currentState)` 完整重绘页面。
+- 玩家吃或碰后，有效牌数为 14，进入玩家打牌阶段。
+- 玩家明杠或暗杠后，杠按 3 张有效牌计算，玩家有效牌数回到 13，进入补牌阶段；玩家需要先摸一张牌，再打出一张牌。
+- 玩家打牌与摸牌判断统一使用“暗手牌数量 + 副露有效张数”，避免副露后只看暗手牌数量导致无法打牌或错误阶段提示。
+
+设计约束：
+
+- `events.ts` 只连接 UI 事件与 `src/game/meld.ts` 的规则入口，不直接实现副露候选规则。
+- 不满足副露条件、非玩家响应窗口或对局结束后，副露按钮点击不会改变状态。
+- 当前基础 UI 不提供多个吃牌候选选择；如果存在多个吃牌候选，默认执行 `declareChi()` 的第一个候选。
+
+### `src/game/meld.ts`
+
+副露规则执行模块。
+
+第 26 步确认的 UI 衔接职责：
+
+- `getChiCandidates()`、`getPonCandidate()`、`getOpenKanCandidate()`、`getClosedKanCandidates()` 是玩家副露按钮启用状态的唯一规则来源。
+- `declareChi()`、`declarePon()`、`declareOpenKan()`、`declareClosedKan()` 是玩家副露按钮执行后的唯一状态修改入口。
+- 使用弃牌形成的副露会移除弃牌来源方牌河中的被叫牌，并清空 `lastDiscard`，从而关闭同一张弃牌的响应窗口。
+- 暗杠不读取最后弃牌，也不清空 `lastDiscard`。
+
+### `src/game/ron.ts`
+
+第 26 步确认的役牌副露衔接：
+
+- `hasYakuhai()` 会同时读取暗手牌与副露牌组。
+- 白、发、中形成暗手刻子、碰、明杠或暗杠时，都可以作为 `yakuhai` 役参与胡牌判断。
+- 杠虽然在副露展示中包含 4 张实体牌，但在胡牌结构中按一个面子处理。
+
+### `src/main.test.ts`
+
+第 26 步补充的 UI 副露测试覆盖：
+
+- 构造电脑最后弃牌可被玩家吃的状态时，吃按钮启用并可执行吃牌。
+- 构造电脑最后弃牌可被玩家碰的状态时，碰按钮启用并可执行碰牌。
+- 构造电脑最后弃牌可被玩家明杠的状态时，杠按钮启用并可执行明杠。
+- 构造玩家自己回合存在暗杠候选时，杠按钮启用并可执行暗杠。
+- 不满足副露条件时，吃、碰、杠按钮禁用且点击不改变状态。
+- 对局结束后，吃、碰、杠按钮禁用且点击不改变状态。
+
+### 后续 UI 衔接边界
+
+- 第 27 步应补充核心规则单元测试覆盖，不应再扩大玩家副露 UI 功能范围。
+- 后续若要支持多个吃牌候选选择，应在 UI 层增加候选选择交互，但仍复用 `declareChi(state, 'player', candidateIndex)`。
+- 后续若要实现更真实的杠流程，应新增王牌/岭上牌结构；当前基础版杠后补牌仍复用普通摸牌按钮和普通牌山。
+
+## 副露役牌回归测试补充
+
+### `src/game/ron.test.ts`
+
+补充副露役牌回归测试。
+
+职责：
+
+- 明确验证白、发、中形成副露碰牌时，可以作为 `yakuhai` 役参与胡牌判断。
+- 明确验证白、发、中形成副露杠牌时，可以作为 `yakuhai` 役参与胡牌判断。
+- 该测试用于保护 `src/game/ron.ts` 中 `hasYakuhai()` 同时读取暗手牌与副露牌组的行为。
+
+架构约束：
+
+- 役牌判断仍集中在 `src/game/ron.ts` 的胡牌评价逻辑中。
+- 测试只补充覆盖，不在 UI 层重复实现白、发、中役牌规则。
+- 杠在副露中记录 4 张实体牌，但役牌与胡牌结构判断都应把它视为一个面子来源。

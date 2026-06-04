@@ -1,6 +1,8 @@
 import type { Actor, GameEndResult, GameState, ScoreSettlement, Yaku } from '../game/game-state'
 import type { TileCopy } from '../game/deck'
+import type { Meld, MeldType } from '../game/player'
 import { allowedTiles } from '../game/tile'
+import { getChiCandidates, getClosedKanCandidates, getOpenKanCandidate, getPonCandidate } from '../game/meld'
 import { canRon, evaluateWinningHand, type WinEvaluation } from '../game/ron'
 import { canTsumo } from '../game/tsumo'
 
@@ -21,6 +23,20 @@ const yakuLabels: Record<Yaku, string> = {
 
 const winButtonLabel = '胡牌'
 
+const meldTypeLabels: Record<MeldType, string> = {
+  chi: '吃',
+  pon: '碰',
+  'open-kan': '明杠',
+  'closed-kan': '暗杠',
+}
+
+type PlayerMeldOpportunity = Readonly<{
+  canChi: boolean
+  canPon: boolean
+  canOpenKan: boolean
+  canClosedKan: boolean
+}>
+
 type PlayerWinOpportunity = Readonly<{
   method: 'ron' | 'tsumo'
   evaluation: WinEvaluation
@@ -28,6 +44,7 @@ type PlayerWinOpportunity = Readonly<{
 
 export function renderApp(container: HTMLElement, state: GameState): void {
   const playerWinOpportunity = getPlayerWinOpportunity(state)
+  const playerMeldOpportunity = getPlayerMeldOpportunity(state)
 
   container.innerHTML = `
     <main class="app-shell" data-status="${state.status}">
@@ -57,6 +74,9 @@ export function renderApp(container: HTMLElement, state: GameState): void {
           <div class="tile-row hidden-hand" aria-label="电脑手牌">
             ${renderHiddenHand(state.computer.hand.length)}
           </div>
+          <div class="meld-row" aria-label="电脑副露">
+            ${renderMelds(state.computer.melds)}
+          </div>
         </section>
 
         <section class="center-area" aria-label="对局状态">
@@ -75,6 +95,10 @@ export function renderApp(container: HTMLElement, state: GameState): void {
               <div>
                 <dt>可胡提示</dt>
                 <dd>${renderWinHint(state, playerWinOpportunity)}</dd>
+              </div>
+              <div>
+                <dt>副露提示</dt>
+                <dd>${renderMeldHint(playerMeldOpportunity)}</dd>
               </div>
             </dl>
           </div>
@@ -99,16 +123,19 @@ export function renderApp(container: HTMLElement, state: GameState): void {
           <div class="tile-row hand-row" aria-label="玩家手牌">
             ${renderPlayerHand(state.player.hand)}
           </div>
+          <div class="meld-row" aria-label="玩家副露">
+            ${renderMelds(state.player.melds)}
+          </div>
         </section>
       </section>
 
       <section class="action-panel" aria-label="操作按钮区域">
         <button type="button" data-action="new-game">新对局</button>
-        <button type="button" data-action="draw" ${state.status === 'player-turn' && state.currentActor === 'player' && state.player.hand.length === 13 ? '' : 'disabled'}>摸牌</button>
+        <button type="button" data-action="draw" ${state.status === 'player-turn' && state.currentActor === 'player' && getPlayerEffectiveTileCount(state) === 13 ? '' : 'disabled'}>摸牌</button>
         <button type="button" disabled>打牌</button>
-        <button type="button" disabled>吃</button>
-        <button type="button" disabled>碰</button>
-        <button type="button" disabled>杠</button>
+        <button type="button" data-action="chi" ${playerMeldOpportunity.canChi ? '' : 'disabled'}>吃</button>
+        <button type="button" data-action="pon" ${playerMeldOpportunity.canPon ? '' : 'disabled'}>碰</button>
+        <button type="button" data-action="kan" ${playerMeldOpportunity.canOpenKan || playerMeldOpportunity.canClosedKan ? '' : 'disabled'}>杠</button>
         <button type="button" data-action="win" ${playerWinOpportunity ? '' : 'disabled'}>${winButtonLabel}</button>
       </section>
       ${renderScoreSettlement(state.scoreSettlement)}
@@ -134,6 +161,16 @@ function renderPlayerHand(tiles: readonly TileCopy[]): string {
       (tile) =>
         `<button type="button" class="tile tile-button" data-tile-id="${tile.tile.id}" data-copy-index="${tile.copyIndex}" aria-label="打出${tile.tile.label}">${tile.tile.label}</button>`,
     )
+    .join('')
+}
+
+function renderMelds(melds: readonly Meld[]): string {
+  if (melds.length === 0) {
+    return '<span class="empty-text">暂无副露</span>'
+  }
+
+  return melds
+    .map((meld) => `<span class="meld">${meldTypeLabels[meld.type]}：${meld.tiles.map((tile) => tile.tile.label).join('')}</span>`)
     .join('')
 }
 
@@ -197,6 +234,22 @@ function getPlayerWinOpportunity(state: GameState): PlayerWinOpportunity | null 
   return null
 }
 
+function getPlayerMeldOpportunity(state: GameState): PlayerMeldOpportunity {
+  return {
+    canChi: getChiCandidates(state, 'player').length > 0,
+    canPon: getPonCandidate(state, 'player') !== null,
+    canOpenKan: getOpenKanCandidate(state, 'player') !== null,
+    canClosedKan: getClosedKanCandidates(state, 'player').length > 0,
+  }
+}
+
+function getPlayerEffectiveTileCount(state: GameState): number {
+  return state.player.hand.length + state.player.melds.reduce(
+    (total, meld) => total + (meld.type === 'open-kan' || meld.type === 'closed-kan' ? 3 : meld.tiles.length),
+    0,
+  )
+}
+
 function renderYakuList(yaku: readonly Yaku[]): string {
   return yaku.map((item) => yakuLabels[item]).join('、')
 }
@@ -242,6 +295,17 @@ function renderWinHint(state: GameState, playerWinOpportunity: PlayerWinOpportun
   }
 
   return '玩家当前不可胡'
+}
+
+function renderMeldHint(playerMeldOpportunity: PlayerMeldOpportunity): string {
+  const hints = [
+    playerMeldOpportunity.canChi ? '玩家可吃' : null,
+    playerMeldOpportunity.canPon ? '玩家可碰' : null,
+    playerMeldOpportunity.canOpenKan ? '玩家可明杠' : null,
+    playerMeldOpportunity.canClosedKan ? '玩家可暗杠' : null,
+  ].filter((hint): hint is string => hint !== null)
+
+  return hints.length > 0 ? hints.join('、') : '暂无可用副露'
 }
 
 function renderScoreSettlement(scoreSettlement: ScoreSettlement | null): string {

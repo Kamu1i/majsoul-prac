@@ -3,6 +3,14 @@ import type { GameState } from '../game/game-state'
 import { createNewGameState } from '../game/game-state'
 import { drawTile } from '../game/draw'
 import { playComputerTurn } from '../game/computer-turn'
+import {
+  declareChi,
+  declareClosedKan,
+  declareOpenKan,
+  declarePon,
+  getClosedKanCandidates,
+  getOpenKanCandidate,
+} from '../game/meld'
 import { discardTileAndSwitchTurn } from '../game/turn'
 import { declareRon } from '../game/ron'
 import { declareTsumo } from '../game/tsumo'
@@ -31,12 +39,19 @@ function resolvePlayerDiscard(state: GameState, tileToDiscard: TileCopy): GameSt
   return playComputerTurn(stateAfterDiscard)
 }
 
+function getPlayerEffectiveTileCount(state: GameState): number {
+  return state.player.hand.length + state.player.melds.reduce(
+    (total, meld) => total + (meld.type === 'open-kan' || meld.type === 'closed-kan' ? 3 : meld.tiles.length),
+    0,
+  )
+}
+
 function canPlayerDiscard(state: GameState): boolean {
-  return state.status === 'player-turn' && state.currentActor === 'player' && state.player.hand.length > 13
+  return state.status === 'player-turn' && state.currentActor === 'player' && getPlayerEffectiveTileCount(state) > 13
 }
 
 function canPlayerDraw(state: GameState): boolean {
-  return state.status === 'player-turn' && state.currentActor === 'player' && state.player.hand.length === 13
+  return state.status === 'player-turn' && state.currentActor === 'player' && getPlayerEffectiveTileCount(state) === 13
 }
 
 function resolvePlayerWin(state: GameState): GameState {
@@ -47,6 +62,34 @@ function resolvePlayerWin(state: GameState): GameState {
   }
 
   return declareRon(state, 'player')
+}
+
+function resolvePlayerKan(state: GameState): GameState {
+  if (getOpenKanCandidate(state, 'player') !== null) {
+    return declareOpenKan(state, 'player')
+  }
+
+  if (getClosedKanCandidates(state, 'player').length > 0) {
+    return declareClosedKan(state, 'player')
+  }
+
+  return state
+}
+
+function resolvePlayerMeld(state: GameState, action: string): GameState {
+  if (action === 'chi') {
+    return declareChi(state, 'player')
+  }
+
+  if (action === 'pon') {
+    return declarePon(state, 'player')
+  }
+
+  if (action === 'kan') {
+    return resolvePlayerKan(state)
+  }
+
+  return state
 }
 
 export function bindAppEvents(container: HTMLElement, initialState: GameState): () => void {
@@ -77,6 +120,22 @@ export function bindAppEvents(container: HTMLElement, initialState: GameState): 
 
     if (clickedElement.dataset.action === 'win') {
       const nextState = resolvePlayerWin(currentState)
+
+      if (nextState === currentState) {
+        return
+      }
+
+      currentState = nextState
+      renderApp(container, currentState)
+      return
+    }
+
+    if (
+      clickedElement.dataset.action === 'chi'
+      || clickedElement.dataset.action === 'pon'
+      || clickedElement.dataset.action === 'kan'
+    ) {
+      const nextState = resolvePlayerMeld(currentState, clickedElement.dataset.action)
 
       if (nextState === currentState) {
         return

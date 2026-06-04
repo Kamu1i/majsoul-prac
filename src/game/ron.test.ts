@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { createTilePool, type TileCopy } from './deck'
 import { discardTile } from './discard'
 import { createNewGameState, type Actor, type GameState } from './game-state'
+import type { Meld } from './player'
 import { canRon, declareRon, evaluateWinningHand, resolveComputerRonAfterPlayerDiscard } from './ron'
 import type { Tile } from './tile'
 
@@ -75,18 +76,30 @@ describe('基础有役判断', () => {
     expect(evaluateWinningHand(hand, { method: 'ron' }).yaku).toContain('tanyao')
   })
 
-  it('识别七对子役种', () => {
+  it('识别副露白发中的碰或杠为役牌役种', () => {
     const hand = tileCopies([
-      'souzu-1', 'souzu-1',
-      'souzu-2', 'souzu-2',
-      'souzu-3', 'souzu-3',
-      'souzu-4', 'souzu-4',
-      'souzu-5', 'souzu-5',
-      'souzu-6', 'souzu-6',
-      'souzu-7', 'souzu-7',
+      'souzu-1', 'souzu-2', 'souzu-3',
+      'souzu-4', 'souzu-5', 'souzu-6',
+      'souzu-7', 'souzu-8', 'souzu-9',
+      'dragon-red', 'dragon-red',
     ])
+    const dragonPonTiles = tileCopies(['dragon-white', 'dragon-white', 'dragon-white'])
+    const dragonKanTiles = tileCopies(['dragon-green', 'dragon-green', 'dragon-green', 'dragon-green'])
+    const ponMeld: Meld = {
+      type: 'pon',
+      tiles: dragonPonTiles,
+      calledTile: dragonPonTiles[0],
+      from: 'computer',
+    }
+    const kanMeld: Meld = {
+      type: 'closed-kan',
+      tiles: dragonKanTiles,
+      calledTile: null,
+      from: null,
+    }
 
-    expect(evaluateWinningHand(hand, { method: 'ron' }).yaku).toContain('seven-pairs')
+    expect(evaluateWinningHand(hand, { method: 'ron', melds: [ponMeld] }).yaku).toContain('yakuhai')
+    expect(evaluateWinningHand(hand, { method: 'ron', melds: [kanMeld] }).yaku).toContain('yakuhai')
   })
 })
 

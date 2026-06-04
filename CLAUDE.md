@@ -32,7 +32,6 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
     - 使用 //wsl.localhost/Ubuntu/home/kamuii/code/majsoul/...
     - 避免不必要的 offset 分段读
     - 已读过的文件不要反复重读
-    - 修改文件优先用 Edit/Write，不要用追加 >>
 
 
 ## 静态检查与思考流约束 (Static Analysis Constraint)
@@ -54,6 +53,26 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **严禁分步零散写入：** 当任务涉及多个文件（如同时修改协议、类型声明和业务实现）时，严禁改完一个文件就立刻调用写入工具。
 - **必须先出全量蓝图：** 你必须在第一轮或第二轮调用中，通过一次性的思考，在终端或内部草稿中把所有涉及文件的【完整修改 Plan/Diff】全部规划完毕并展示给用户。
 - **批量合并工具调用：** 只有当所有多文件的修改逻辑都在逻辑上闭环、且得到用户确认后，才能集中、连续地调用写入工具。严禁在“读-写-读-写”的混乱循环中消耗 Token。
+
+## 关于offset
+ 1. 不要用巨大 offset。
+    Read 的 offset 是“行号偏移”，不是字符偏移。文件只有 921 行时，offset: 8400 或更大一定越界。
+    2. 读末尾时用合理行号。
+    已知文件有 921 行，要读末尾 100 行，应使用：
+    offset: 821
+    limit: 100
+    2. 而不是按字节数或随意大数。
+    3. 优先利用已读上下文。
+    如果刚刚已经读过相关片段，且只是要在已知段落附近补充内容，应直接用 Edit 替换已知文本，不要反复 Read。
+    4. 读失败一次后立刻停下调整策略。
+    看到提示：
+    file exists but is shorter than the provided offset
+    4. 就说明 offset 过大。下一次应该把 offset 改到实际行数以内，而不是继续试类似的大数字。
+    5. 如果只想追加文档内容，不用读末尾。
+    项目禁止 >> 追加，但可以用 Edit 把某个已知结尾段落替换为“原段落 + 新段落”。这通常比猜 offset 更稳。
+
+    最核心的一句话：把 offset 当作行号，不当作字符位置；一旦工具提示文件总行数，就用这个总行数反推合理 offset。
+
 
 
 ## 语言规则
