@@ -3,6 +3,8 @@ import type { GameState } from '../game/game-state'
 import { drawTile } from '../game/draw'
 import { playComputerTurn } from '../game/computer-turn'
 import { discardTileAndSwitchTurn } from '../game/turn'
+import { declareRon } from '../game/ron'
+import { declareTsumo } from '../game/tsumo'
 import { renderApp } from './render'
 
 function findPlayerTileByButton(state: GameState, button: HTMLButtonElement): TileCopy | null {
@@ -36,6 +38,16 @@ function canPlayerDraw(state: GameState): boolean {
   return state.status === 'player-turn' && state.currentActor === 'player' && state.player.hand.length === 13
 }
 
+function resolvePlayerWin(state: GameState): GameState {
+  const stateAfterTsumo = declareTsumo(state, 'player')
+
+  if (stateAfterTsumo !== state) {
+    return stateAfterTsumo
+  }
+
+  return declareRon(state, 'player')
+}
+
 export function bindAppEvents(container: HTMLElement, initialState: GameState): () => void {
   let currentState = initialState
 
@@ -52,6 +64,18 @@ export function bindAppEvents(container: HTMLElement, initialState: GameState): 
       }
 
       currentState = drawTile(currentState)
+      renderApp(container, currentState)
+      return
+    }
+
+    if (clickedElement.dataset.action === 'win') {
+      const nextState = resolvePlayerWin(currentState)
+
+      if (nextState === currentState) {
+        return
+      }
+
+      currentState = nextState
       renderApp(container, currentState)
       return
     }

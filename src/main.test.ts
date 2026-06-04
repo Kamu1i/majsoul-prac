@@ -1,12 +1,64 @@
 import { describe, expect, it } from 'vitest'
-import { createNewGameState, type GameState } from './game/game-state'
+import { createTilePool, type TileCopy } from './game/deck'
 import { discardTile } from './game/discard'
+import { createNewGameState, type Actor, type GameState } from './game/game-state'
 import { initialGameState } from './main'
+import type { Tile } from './game/tile'
 import { bindAppEvents } from './ui/events'
 import { renderApp } from './ui/render'
 
 function fixedRandomSource(): number {
   return 0.42
+}
+
+type TileId = Tile['id']
+
+function tileCopies(tileIds: TileId[]): TileCopy[] {
+  const remainingTiles = [...createTilePool()]
+
+  return tileIds.map((tileId) => {
+    const tileIndex = remainingTiles.findIndex((tileCopy) => tileCopy.tile.id === tileId)
+
+    if (tileIndex === -1) {
+      throw new Error('测试牌池中没有足够的指定牌')
+    }
+
+    const tileCopy = remainingTiles[tileIndex]
+    remainingTiles.splice(tileIndex, 1)
+
+    return tileCopy
+  })
+}
+
+function withActorHand(state: GameState, actor: Actor, hand: TileCopy[]): GameState {
+  return {
+    ...state,
+    player: actor === 'player' ? { ...state.player, hand } : state.player,
+    computer: actor === 'computer' ? { ...state.computer, hand } : state.computer,
+  }
+}
+
+function withComputerDiscard(playerHand: TileCopy[], tileToDiscard: TileCopy): GameState {
+  const state: GameState = {
+    ...createNewGameState(fixedRandomSource),
+    status: 'computer-turn',
+    currentActor: 'computer',
+  }
+  const stateAfterDiscard = discardTile(
+    withActorHand(state, 'computer', [tileToDiscard, ...tileCopies(['souzu-1'])]),
+    'computer',
+    tileToDiscard,
+  )
+
+  return withActorHand(
+    {
+      ...stateAfterDiscard,
+      status: 'player-turn',
+      currentActor: 'player',
+    },
+    'player',
+    playerHand,
+  )
 }
 
 describe('应用入口', () => {
@@ -207,6 +259,157 @@ describe('应用入口', () => {
     container.querySelector<HTMLButtonElement>('[aria-label="玩家手牌"] button.tile-button')?.click()
 
     expect(container.textContent).toBe(initialText)
+    unbindEvents()
+  })
+
+  it('构造玩家听牌状态时，页面显示听牌提示和待牌', () => {
+    const container = document.createElement('div')
+    const state = createNewGameState(fixedRandomSource)
+    const readyState: GameState = {
+      ...state,
+      player: {
+        ...state.player,
+        hand: tileCopies([
+          'souzu-1', 'souzu-2', 'souzu-3',
+          'souzu-4', 'souzu-5', 'souzu-6',
+          'souzu-7', 'souzu-8', 'souzu-9',
+          'dragon-white', 'dragon-white',
+          'dragon-red', 'dragon-red',
+        ]),
+      },
+    }
+
+    renderApp(container, readyState)
+
+    expect(container.textContent).toContain('玩家听牌，待牌：白')
+  })
+
+  it('构造玩家可自摸状态时，页面显示胡牌按钮和命中役提示', () => {
+    const container = document.createElement('div')
+    const state = createNewGameState(fixedRandomSource)
+    const tsumoState: GameState = {
+      ...state,
+      player: {
+        ...state.player,
+        hand: tileCopies([
+          'souzu-1', 'souzu-2', 'souzu-3',
+          'souzu-4', 'souzu-5', 'souzu-6',
+          'souzu-7', 'souzu-8', 'souzu-9',
+          'dragon-white', 'dragon-white', 'dragon-white',
+          'dragon-red', 'dragon-red',
+        ]),
+      },
+    }
+
+    renderApp(container, tsumoState)
+
+    const winButton = container.querySelector<HTMLButtonElement>('[data-action="win"]')
+
+    expect(winButton?.disabled).toBe(false)
+    expect(container.textContent).toContain('玩家可自摸，役种：自摸、役牌')
+  })
+
+  it('构造玩家可荣和状态时，页面显示胡牌按钮和命中役提示', () => {
+    const container = document.createElement('div')
+    const state = withComputerDiscard(
+      tileCopies([
+        'souzu-1', 'souzu-2', 'souzu-3',
+        'souzu-4', 'souzu-5', 'souzu-6',
+        'souzu-7', 'souzu-8', 'souzu-9',
+        'dragon-white', 'dragon-white',
+        'dragon-red', 'dragon-red',
+      ]),
+      tileCopies(['dragon-white'])[0],
+    )
+
+    renderApp(container, state)
+
+    const winButton = container.querySelector<HTMLButtonElement>('[data-action="win"]')
+
+    expect(winButton?.disabled).toBe(false)
+    expect(container.textContent).toContain('玩家可荣和，役种：役牌')
+  })
+
+  it('构造玩家不可胡状态时，页面不允许胡牌', () => {
+    const container = document.createElement('div')
+    const state = createNewGameState(fixedRandomSource)
+
+    renderApp(container, state)
+
+    expect(container.querySelector<HTMLButtonElement>('[data-action="win"]')?.disabled).toBe(true)
+    expect(container.textContent).toContain('玩家当前不可胡')
+  })
+
+  it('点击自摸胡牌后对局结束并更新双方点数', () => {
+    const container = document.createElement('div')
+    const state = createNewGameState(fixedRandomSource)
+    const tsumoState: GameState = {
+      ...state,
+      player: {
+        ...state.player,
+        hand: tileCopies([
+          'souzu-1', 'souzu-2', 'souzu-3',
+          'souzu-4', 'souzu-5', 'souzu-6',
+          'souzu-7', 'souzu-8', 'souzu-9',
+          'dragon-white', 'dragon-white', 'dragon-white',
+          'dragon-red', 'dragon-red',
+        ]),
+      },
+    }
+
+    renderApp(container, tsumoState)
+    const unbindEvents = bindAppEvents(container, tsumoState)
+    container.querySelector<HTMLButtonElement>('[data-action="win"]')?.click()
+
+    expect(container.querySelector('.app-shell')?.getAttribute('data-status')).toBe('ended')
+    expect(container.textContent).toContain('玩家自摸，役种：自摸、役牌')
+    expect(container.textContent).toContain('玩家：+15000，结算后 115000 点')
+    expect(container.textContent).toContain('电脑：-15000，结算后 85000 点')
+    unbindEvents()
+  })
+
+  it('点击荣和胡牌后对局结束并更新双方点数', () => {
+    const container = document.createElement('div')
+    const state = withComputerDiscard(
+      tileCopies([
+        'souzu-1', 'souzu-2', 'souzu-3',
+        'souzu-4', 'souzu-5', 'souzu-6',
+        'souzu-7', 'souzu-8', 'souzu-9',
+        'dragon-white', 'dragon-white',
+        'dragon-red', 'dragon-red',
+      ]),
+      tileCopies(['dragon-white'])[0],
+    )
+
+    renderApp(container, state)
+    const unbindEvents = bindAppEvents(container, state)
+    container.querySelector<HTMLButtonElement>('[data-action="win"]')?.click()
+
+    expect(container.querySelector('.app-shell')?.getAttribute('data-status')).toBe('ended')
+    expect(container.textContent).toContain('玩家荣和，役种：役牌')
+    expect(container.textContent).toContain('玩家：+20000，结算后 120000 点')
+    expect(container.textContent).toContain('电脑：-20000，结算后 80000 点')
+    unbindEvents()
+  })
+
+  it('对局结束后摸牌、打牌、胡牌按钮不再允许改变状态', () => {
+    const container = document.createElement('div')
+    const state: GameState = {
+      ...createNewGameState(fixedRandomSource),
+      status: 'ended',
+      currentActor: null,
+      endResult: { type: 'exhaustive-draw' },
+    }
+
+    renderApp(container, state)
+    const initialText = container.textContent
+    const unbindEvents = bindAppEvents(container, state)
+    container.querySelector<HTMLButtonElement>('[data-action="draw"]')?.click()
+    container.querySelector<HTMLButtonElement>('[aria-label="玩家手牌"] button.tile-button')?.click()
+    container.querySelector<HTMLButtonElement>('[data-action="win"]')?.click()
+
+    expect(container.textContent).toBe(initialText)
+    expect(container.querySelector<HTMLButtonElement>('[data-action="win"]')?.disabled).toBe(true)
     unbindEvents()
   })
 })

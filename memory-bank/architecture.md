@@ -439,5 +439,72 @@
 ### 后续 UI 衔接边界
 
 - 第 24 步应继续在 `events.ts` 中绑定胡牌按钮事件，不应把胡牌判断写入 `render.ts`。
-- 第 24 步的胡牌按钮展示应读取 `canRon()` / `canTsumo()` 的结果，点击后调用 `declareRon()` / `declareTsumo()` 并重新渲染。
+- 第 24 步的胡牌按钮展示应读取 `canRon()` / `declareRon()` 与 `canTsumo()` / `declareTsumo()` 并重新渲染。
 - 当前第 23 步没有连接玩家吃、碰、杠按钮；后续玩家副露 UI 应复用 `src/game/meld.ts` 的候选判断和声明入口。
+
+## 第 24 步新增架构说明
+
+### `src/ui/render.ts`
+
+玩家胡牌提示与结算展示渲染模块。
+
+第 24 步扩展后的职责：
+
+- `renderApp(container, state)` 每次重绘时计算玩家当前胡牌机会，并据此渲染可胡提示与胡牌按钮状态。
+- 通过 `getPlayerWinOpportunity()` 优先调用 `canTsumo(state, 'player')` 判断自摸；自摸不可用时再调用 `canRon(state, 'player')` 判断荣和。
+- 可胡提示会展示玩家可自摸或可荣和，以及对应命中役种。
+- 玩家不可胡时显示“玩家当前不可胡”。
+- 听牌提示通过 `getPlayerWinningWaits()` 遍历 `allowedTiles`，把玩家 13 张手牌加候选牌后交给 `evaluateWinningHand()` 判断，显示可胡待牌。
+- 胡牌按钮现在使用 `data-action="win"`，只在玩家可自摸或可荣和时启用。
+- 对局结束后若 `state.scoreSettlement` 存在，会渲染点数变化面板，展示双方分差与结算后点数。
+
+设计约束：
+
+- `render.ts` 仍不直接修改 `GameState`，也不调用 `declareRon()` 或 `declareTsumo()` 执行胡牌。
+- `render.ts` 可以调用只读判断函数 `canRon()`、`canTsumo()` 和 `evaluateWinningHand()`，用于决定提示文案与按钮启用状态。
+- 当前听牌提示是基础枚举待牌，不实现进张效率、复杂向听数或副露选择提示。
+- 结算展示直接读取 `state.scoreSettlement`，不在 UI 中重新计算点数变化。
+
+### `src/ui/events.ts`
+
+玩家胡牌按钮事件绑定模块。
+
+第 24 步扩展后的职责：
+
+- 在既有事件委托中处理 `data-action="win"` 的胡牌按钮点击。
+- `resolvePlayerWin()` 会先调用 `declareTsumo(currentState, 'player')`。
+- 如果自摸声明没有改变状态，再调用 `declareRon(currentState, 'player')`。
+- 胡牌成功后更新闭包中的 `currentState` 并调用 `renderApp(container, currentState)` 完整重绘页面。
+- 不可胡时 `declareTsumo()` 与 `declareRon()` 都返回原状态，事件处理直接忽略。
+
+设计约束：
+
+- `events.ts` 只连接 UI 事件与核心流程入口，不实现胡牌牌形、役种或计分规则。
+- 胡牌声明仍由 `src/game/tsumo.ts` 与 `src/game/ron.ts` 负责，并复用 `src/game/scoring.ts` 生成结算记录。
+- 对局结束后胡牌按钮禁用，事件路径也不会改变结束状态。
+
+### `src/styles.css`
+
+第 24 步补充的样式职责：
+
+- `.settlement-panel` 复用基础卡片边框、圆角、背景和阴影样式。
+- `.settlement-panel` 使用与状态面板一致的内边距，展示对局结束后的点数变化。
+
+### `src/main.test.ts`
+
+第 24 步补充的 UI 胡牌交互测试覆盖：
+
+- 构造玩家听牌状态时，页面显示听牌提示和待牌。
+- 构造玩家可自摸状态时，页面显示胡牌按钮和命中役提示。
+- 构造玩家可荣和状态时，页面显示胡牌按钮和命中役提示。
+- 构造玩家不可胡状态时，胡牌按钮保持禁用。
+- 点击自摸胡牌后，对局进入 `ended`，并展示自摸结算点数变化。
+- 点击荣和胡牌后，对局进入 `ended`，并展示荣和结算点数变化。
+- 对局结束后摸牌、打牌、胡牌按钮不再允许改变状态。
+
+### 后续 UI 衔接边界
+
+- 第 25 步应在 `events.ts` 中复用当前闭包状态管理方式接入新对局按钮。
+- 新对局按钮应调用 `createNewGameState()` 重置整局状态，而不是手动清空各个 UI 区块。
+- 玩家副露按钮仍未接入 UI，后续应复用 `src/game/meld.ts` 的候选判断与声明入口。
+- 听牌提示当前只用于基础待牌展示，后续若要实现更完整听牌/向听能力，应继续保持规则判断与 DOM 渲染解耦。

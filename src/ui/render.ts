@@ -1,5 +1,8 @@
-import type { Actor, GameEndResult, GameState, Yaku } from '../game/game-state'
+import type { Actor, GameEndResult, GameState, ScoreSettlement, Yaku } from '../game/game-state'
 import type { TileCopy } from '../game/deck'
+import { allowedTiles } from '../game/tile'
+import { canRon, evaluateWinningHand, type WinEvaluation } from '../game/ron'
+import { canTsumo } from '../game/tsumo'
 
 const actorLabels: Record<Actor, string> = {
   player: '玩家',
@@ -16,7 +19,16 @@ const yakuLabels: Record<Yaku, string> = {
   houtei: '河底捞鱼',
 }
 
+const winButtonLabel = '胡牌'
+
+type PlayerWinOpportunity = Readonly<{
+  method: 'ron' | 'tsumo'
+  evaluation: WinEvaluation
+}>
+
 export function renderApp(container: HTMLElement, state: GameState): void {
+  const playerWinOpportunity = getPlayerWinOpportunity(state)
+
   container.innerHTML = `
     <main class="app-shell" data-status="${state.status}">
       <header class="app-header">
@@ -62,7 +74,7 @@ export function renderApp(container: HTMLElement, state: GameState): void {
               </div>
               <div>
                 <dt>可胡提示</dt>
-                <dd>${renderWinHint(state)}</dd>
+                <dd>${renderWinHint(state, playerWinOpportunity)}</dd>
               </div>
             </dl>
           </div>
@@ -96,8 +108,9 @@ export function renderApp(container: HTMLElement, state: GameState): void {
         <button type="button" disabled>吃</button>
         <button type="button" disabled>碰</button>
         <button type="button" disabled>杠</button>
-        <button type="button" disabled>胡牌</button>
+        <button type="button" data-action="win" ${playerWinOpportunity ? '' : 'disabled'}>${winButtonLabel}</button>
       </section>
+      ${renderScoreSettlement(state.scoreSettlement)}
     </main>
   `
 }
@@ -161,18 +174,93 @@ function renderEndResult(endResult: GameEndResult): string {
   return `${actorLabels[endResult.winner]}${methodLabel}，役种：${yakuText}`
 }
 
+function getPlayerWinOpportunity(state: GameState): PlayerWinOpportunity | null {
+  const tsumoEvaluation = canTsumo(state, 'player')
+
+  if (tsumoEvaluation.canWin) {
+    return {
+      method: 'tsumo',
+      evaluation: tsumoEvaluation,
+    }
+  }
+
+  const ronEvaluation = canRon(state, 'player')
+
+  if (ronEvaluation.canWin) {
+    return {
+      method: 'ron',
+      evaluation: ronEvaluation,
+    }
+  }
+
+  return null
+}
+
+function renderYakuList(yaku: readonly Yaku[]): string {
+  return yaku.map((item) => yakuLabels[item]).join('、')
+}
+
+function getPlayerWinningWaits(state: GameState): string[] {
+  if (state.status === 'ended' || state.player.hand.length !== 13) {
+    return []
+  }
+
+  return allowedTiles
+    .filter((tile) =>
+      evaluateWinningHand([...state.player.hand, { tile, copyIndex: 1 }], {
+        method: 'tsumo',
+        melds: state.player.melds,
+      }).canWin,
+    )
+    .map((tile) => tile.label)
+}
+
 function renderReadyHint(state: GameState): string {
   if (state.status === 'ended') {
     return '对局已结束'
   }
 
-  return '听牌计算将在后续步骤接入'
+  const waits = getPlayerWinningWaits(state)
+
+  if (waits.length > 0) {
+    return `玩家听牌，待牌：${waits.join('、')}`
+  }
+
+  return '玩家未听牌'
 }
 
-function renderWinHint(state: GameState): string {
+function renderWinHint(state: GameState, playerWinOpportunity: PlayerWinOpportunity | null): string {
   if (state.endResult?.type === 'win') {
     return `${actorLabels[state.endResult.winner]}已胡牌`
   }
 
-  return '可胡判断将在后续步骤接入'
+  if (playerWinOpportunity) {
+    const methodLabel = playerWinOpportunity.method === 'tsumo' ? '自摸' : '荣和'
+
+    return `玩家可${methodLabel}，役种：${renderYakuList(playerWinOpportunity.evaluation.yaku)}`
+  }
+
+  return '玩家当前不可胡'
+}
+
+function renderScoreSettlement(scoreSettlement: ScoreSettlement | null): string {
+  if (scoreSettlement === null) {
+    return ''
+  }
+
+  return `
+    <section class="settlement-panel" aria-label="点数变化">
+      <h2>点数变化</h2>
+      <p>玩家：${formatPointDelta(scoreSettlement.delta.player)}，结算后 ${scoreSettlement.after.player} 点</p>
+      <p>电脑：${formatPointDelta(scoreSettlement.delta.computer)}，结算后 ${scoreSettlement.after.computer} 点</p>
+    </section>
+  `
+}
+
+function formatPointDelta(delta: number): string {
+  if (delta > 0) {
+    return `+${delta}`
+  }
+
+  return String(delta)
 }

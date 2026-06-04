@@ -52,7 +52,8 @@ button {
 .status-panel,
 .discard-board,
 .player-area,
-.action-panel {
+.action-panel,
+.settlement-panel {
   border: 1px solid #dbe3ef;
   border-radius: 16px;
   background: #ffffff;
@@ -111,7 +112,8 @@ button {
 }
 
 .status-panel,
-.discard-board {
+.discard-board,
+.settlement-panel {
   padding: 18px;
 }
 
