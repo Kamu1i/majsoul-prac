@@ -22,4 +22,4 @@ UI界面优化调整，考虑增加胡牌特效
 
 ## 使用方法
 
-git clone下来之后拿npm在本地浏览器上运行`npm rum dev`
+git clone下来之后执行npm命令行`npm rum dev`，按终端给的接口/url在本地浏览器上运行
