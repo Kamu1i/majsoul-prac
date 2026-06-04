@@ -140,7 +140,14 @@ function renderTurnPrompt(state: GameState): string {
     return '等待新对局开始。'
   }
 
-  return `当前回合：${actorLabels[state.currentActor]}`
+  if (state.currentActor === 'player') {
+    const playerActionHint = state.player.hand.length === 13 ? '请摸牌。' : '请打出一张牌。'
+    const computerActionText = state.lastDiscard?.actor === 'computer' ? '电脑已自动行动，' : ''
+
+    return `${computerActionText}当前回合：玩家，${playerActionHint}`
+  }
+
+  return '当前回合：电脑'
 }
 
 function renderEndResult(endResult: GameEndResult): string {

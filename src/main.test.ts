@@ -118,6 +118,25 @@ describe('应用入口', () => {
     unbindEvents()
   })
 
+  it('玩家回合提示区分摸牌和打牌阶段', () => {
+    const container = document.createElement('div')
+    const state = createNewGameState(fixedRandomSource)
+    const stateAfterPlayerDraw: GameState = {
+      ...state,
+      player: {
+        ...state.player,
+        hand: [...state.player.hand, state.wall[0]],
+      },
+      wall: state.wall.slice(1),
+    }
+
+    renderApp(container, state)
+    expect(container.textContent).toContain('当前回合：玩家，请摸牌。')
+
+    renderApp(container, stateAfterPlayerDraw)
+    expect(container.textContent).toContain('当前回合：玩家，请打出一张牌。')
+  })
+
   it('玩家摸牌前点击手牌不会改变状态', () => {
     const container = document.createElement('div')
     const state = createNewGameState(fixedRandomSource)
@@ -150,7 +169,7 @@ describe('应用入口', () => {
 
     expect(container.querySelector('[aria-label="玩家牌河"]')?.textContent).toContain(tileToDiscard.tile.label)
     expect(container.querySelector('[aria-label="电脑牌河"]')?.textContent).not.toBe('暂无弃牌')
-    expect(container.textContent).toContain('当前回合：玩家')
+    expect(container.textContent).toContain('电脑已自动行动，当前回合：玩家，请摸牌。')
     unbindEvents()
   })
 
