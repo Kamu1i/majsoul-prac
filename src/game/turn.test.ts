@@ -19,21 +19,6 @@ function withCurrentActor(state: GameState, currentActor: Actor): GameState {
   }
 }
 
-function getTileCopyKey(tileCopy: TileCopy): string {
-  return `${tileCopy.tile.id}:${tileCopy.copyIndex}`
-}
-
-function findTileOutsideHand(hand: TileCopy[]): TileCopy {
-  const handTileKeys = new Set(hand.map(getTileCopyKey))
-  const tileOutsideHand = createTilePool().find((tileCopy) => !handTileKeys.has(getTileCopyKey(tileCopy)))
-
-  if (tileOutsideHand === undefined) {
-    throw new Error('测试数据中没有找到手牌外的实体牌')
-  }
-
-  return tileOutsideHand
-}
-
 function tileCopies(tileIds: TileId[]): TileCopy[] {
   const remainingTiles = [...createTilePool()]
 
@@ -111,15 +96,33 @@ describe('discardTileAndSwitchTurn', () => {
     expect(nextState.lastDiscard?.actor).toBe('computer')
   })
 
-  it('does not switch current actor after an invalid discard', () => {
-    const state = withCurrentActor(createNewGameState(fixedRandomSource), 'player')
-    const tileToDiscard = findTileOutsideHand(state.player.hand)
+  it('does not trigger computer response after an invalid player discard', () => {
+    const playerHand = tileCopies(['souzu-9'])
+    const state = withActorHand(
+      {
+        ...withCurrentActor(createNewGameState(fixedRandomSource), 'player'),
+        player: {
+          ...createNewGameState(fixedRandomSource).player,
+          hand: playerHand,
+        },
+      },
+      'computer',
+      tileCopies([
+        'souzu-1', 'souzu-2', 'souzu-3',
+        'souzu-4', 'souzu-5', 'souzu-6',
+        'souzu-7', 'souzu-8', 'souzu-9',
+        'dragon-white', 'dragon-white',
+        'dragon-red', 'dragon-red',
+      ]),
+    )
+    const tileToDiscard = tileCopies(['dragon-white'])[0]
 
     const nextState = discardTileAndSwitchTurn(state, 'player', tileToDiscard)
 
     expect(nextState).toBe(state)
-    expect(nextState.currentActor).toBe('player')
     expect(nextState.status).toBe('player-turn')
+    expect(nextState.computer.melds).toEqual([])
+    expect(nextState.endResult).toBeNull()
   })
 
   it('does not switch current actor when the game has ended', () => {

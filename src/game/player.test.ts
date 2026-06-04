@@ -35,4 +35,20 @@ describe('玩家状态', () => {
     expect(computer.melds).toEqual([])
     expect(computer.points).toBe(initialPlayerPoints)
   })
+
+  it('玩家和电脑的副露列表实例互不影响', () => {
+    const player = createPlayerState()
+    const computer = createPlayerState()
+    const tileCopies = createTilePool().slice(0, 3)
+
+    player.melds.push({
+      type: 'pon',
+      tiles: tileCopies,
+      calledTile: tileCopies[0],
+      from: 'computer',
+    })
+
+    expect(player.melds).toHaveLength(1)
+    expect(computer.melds).toEqual([])
+  })
 })

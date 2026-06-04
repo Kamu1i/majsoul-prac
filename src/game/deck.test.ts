@@ -86,4 +86,14 @@ describe('洗牌', () => {
     expect(tilePool).toEqual(originalTilePool)
     expect(shuffledTilePool).not.toBe(tilePool)
   })
+
+  it('洗牌后不会丢失或重复实体牌', () => {
+    const originalKeys = createTilePool().map((tileCopy) => `${tileCopy.tile.id}:${tileCopy.copyIndex}`).sort()
+    const shuffledKeys = shuffleTilePool(createTilePool(), createRepeatingRandomSource([0.2, 0.8, 0.4]))
+      .map((tileCopy) => `${tileCopy.tile.id}:${tileCopy.copyIndex}`)
+      .sort()
+
+    expect(shuffledKeys).toEqual(originalKeys)
+    expect(new Set(shuffledKeys).size).toBe(48)
+  })
 })

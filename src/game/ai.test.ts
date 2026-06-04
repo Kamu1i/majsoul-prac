@@ -67,4 +67,27 @@ describe('chooseComputerDiscardTile', () => {
 
     expect(chooseComputerDiscardTile(hand)).toEqual(getTileCopy('souzu-7', 1))
   })
+
+  it('优先打出孤立牌而不是拆对子或刻子', () => {
+    const hand = [
+      getTileCopy('souzu-2', 1),
+      getTileCopy('souzu-2', 2),
+      getTileCopy('dragon-white', 1),
+      getTileCopy('dragon-white', 2),
+      getTileCopy('dragon-white', 3),
+      getTileCopy('souzu-9', 1),
+    ]
+
+    expect(chooseComputerDiscardTile(hand)).toEqual(getTileCopy('souzu-9', 1))
+  })
+
+  it('同种牌多副本作为候选时按 copyIndex 稳定选择', () => {
+    const hand = [
+      getTileCopy('souzu-7', 3),
+      getTileCopy('souzu-7', 1),
+      getTileCopy('souzu-8', 1),
+    ]
+
+    expect(chooseComputerDiscardTile(hand)).toEqual(getTileCopy('souzu-7', 1))
+  })
 })

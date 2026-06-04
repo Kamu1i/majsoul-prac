@@ -227,4 +227,20 @@ describe('自摸入口', () => {
       },
     })
   })
+
+  it('已结束状态不能再次声明自摸', () => {
+    const playerHand = tileCopies([
+      'souzu-1', 'souzu-2', 'souzu-3',
+      'souzu-4', 'souzu-5', 'souzu-6',
+      'souzu-7', 'souzu-8', 'souzu-9',
+      'dragon-white', 'dragon-white', 'dragon-white',
+      'dragon-red', 'dragon-red',
+    ])
+    const state = withActorHand(asActorTurn(createNewGameState(fixedRandomSource), 'player'), 'player', playerHand)
+    const endedState = declareTsumo(state, 'player')
+
+    const nextState = declareTsumo(endedState, 'player')
+
+    expect(nextState).toBe(endedState)
+  })
 })

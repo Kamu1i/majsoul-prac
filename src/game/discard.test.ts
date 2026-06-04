@@ -83,11 +83,20 @@ describe('discardTile', () => {
 
   it('does not change state when discarding a tile that is not in hand', () => {
     const state = withCurrentActor(createNewGameState(fixedRandomSource), 'player')
-    const tileToDiscard = findTileOutsideHand(state.player.hand)
+    const existingLastDiscard = {
+      tile: state.computer.hand[0],
+      actor: 'computer' as const,
+    }
+    const stateWithLastDiscard: GameState = {
+      ...state,
+      lastDiscard: existingLastDiscard,
+    }
+    const tileToDiscard = findTileOutsideHand(stateWithLastDiscard.player.hand)
 
-    const nextState = discardTile(state, 'player', tileToDiscard)
+    const nextState = discardTile(stateWithLastDiscard, 'player', tileToDiscard)
 
-    expect(nextState).toBe(state)
+    expect(nextState).toBe(stateWithLastDiscard)
+    expect(nextState.lastDiscard).toBe(existingLastDiscard)
   })
 
   it('does not change state when a non-current actor discards', () => {
@@ -106,6 +115,29 @@ describe('discardTile', () => {
       status: 'ended',
       currentActor: null,
       endResult: { type: 'exhaustive-draw' },
+    }
+    const tileToDiscard = endedState.player.hand[0]
+
+    const nextState = discardTile(endedState, 'player', tileToDiscard)
+
+    expect(nextState).toBe(endedState)
+  })
+
+  it('does not allow discarding after a win ended the game', () => {
+    const state = withCurrentActor(createNewGameState(fixedRandomSource), 'player')
+    const endedState: GameState = {
+      ...state,
+      status: 'ended',
+      currentActor: null,
+      endResult: {
+        type: 'win',
+        winner: 'computer',
+        loser: 'player',
+        method: 'ron',
+        yaku: ['yakuhai'],
+        isHaitei: false,
+        isHoutei: false,
+      },
     }
     const tileToDiscard = endedState.player.hand[0]
 

@@ -113,4 +113,14 @@ describe('基础计分', () => {
     expect(pointsTotal(settledState)).toBe(pointsTotal(state))
     expect(settledState.scoreSettlement?.delta.player).toBe(-settledState.scoreSettlement!.delta.computer)
   })
+
+  it('没有结束结果时不会生成结算记录或改变点数', () => {
+    const state = createNewGameState(fixedRandomSource)
+
+    const settledState = settleGameEnd(state)
+
+    expect(settledState.player.points).toBe(state.player.points)
+    expect(settledState.computer.points).toBe(state.computer.points)
+    expect(settledState.scoreSettlement).toBeNull()
+  })
 })

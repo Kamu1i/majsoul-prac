@@ -102,6 +102,28 @@ describe('基础胡牌牌形判断', () => {
     expect(isStandardWinningHand(hand)).toBe(false)
   })
 
+  it('基础胡牌入口同时识别标准形与七对子', () => {
+    const standardHand = tiles([
+      'souzu-1', 'souzu-2', 'souzu-3',
+      'souzu-1', 'souzu-2', 'souzu-3',
+      'souzu-4', 'souzu-5', 'souzu-6',
+      'souzu-7', 'souzu-8', 'souzu-9',
+      'dragon-white', 'dragon-white',
+    ])
+    const sevenPairsHand = tiles([
+      'souzu-1', 'souzu-1',
+      'souzu-2', 'souzu-2',
+      'souzu-3', 'souzu-3',
+      'souzu-4', 'souzu-4',
+      'souzu-5', 'souzu-5',
+      'dragon-white', 'dragon-white',
+      'dragon-red', 'dragon-red',
+    ])
+
+    expect(isBasicWinningHand(standardHand)).toBe(true)
+    expect(isBasicWinningHand(sevenPairsHand)).toBe(true)
+  })
+
   it('导出当前标准形面子张数常量', () => {
     expect(standardMeldTileCount).toBe(3)
   })
@@ -175,4 +197,3 @@ describe('七对子胡牌牌形判断', () => {
     expect(isBasicWinningHand(sevenPairsHand)).toBe(true)
   })
 })
-

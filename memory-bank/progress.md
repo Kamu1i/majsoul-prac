@@ -936,3 +936,36 @@
 后续注意事项：
 
 - 第 27 步补充核心规则单元测试时，应保留这类回归覆盖，避免后续重构役种判断时遗漏副露役牌。
+
+## 2026-06-04：第 27 步核心规则测试补充进行中
+
+正在实施 `memory-bank/implementation-plan.md` 中的第 27 步：补充核心规则单元测试覆盖。
+
+本次已写入的测试补充：
+
+- `src/game/tile.test.ts`：补充不同牌不相同、未知牌 ID 抛错的非法路径覆盖。
+- `src/game/deck.test.ts`：补充洗牌后实体牌不丢失、不重复的守恒覆盖，并保留洗牌不修改原牌池覆盖。
+- `src/game/player.test.ts`：补充玩家与电脑副露列表实例隔离覆盖。
+- `src/game/game-state.test.ts`：补充新对局 `scoreSettlement` 初始为空，以及玩家手牌、电脑手牌、牌山合计 48 张实体牌且不重复。
+- `src/game/draw.test.ts`：补充胡牌结束后不能继续摸牌。
+- `src/game/discard.test.ts`：补充非法打牌不改写 `lastDiscard`，以及胡牌结束后不能继续打牌。
+- `src/game/turn.test.ts`：补充非法玩家弃牌不会触发电脑荣和或副露响应。
+- `src/game/ai.test.ts`：补充电脑策略优先打孤立牌、不拆对子或刻子，以及同种牌多副本时按 `copyIndex` 稳定选择。
+- `src/game/rules.test.ts`：补充 `isBasicWinningHand()` 同时识别标准形与七对子。
+- `src/game/ron.test.ts`：补充七对子役种识别和无役标准形不可胡覆盖。
+- `src/game/tsumo.test.ts`：补充已结束状态不能再次声明自摸。
+- `src/game/meld.test.ts`：补充无最后弃牌、响应自己弃牌、清空最后弃牌响应窗口等副露非法路径和状态边界。
+- `src/game/scoring.test.ts`：补充无结束结果时不生成结算记录且不改变点数。
+
+当前验证状态：
+
+- 用户运行 `npm run test` 后发现新增测试中存在断言/API 问题：`toHaveSize` 不可用，已改为 `.size` 后用 `toBe(48)` 断言。
+- 用户运行 `npm run test` 后发现七对子役种测试期望与当前实现不一致：当前 `evaluateWinningHand()` 对七对子返回 `['seven-pairs']`，不会同时返回 `tanyao`。
+- 用户指出七对子本身可以同时满足断幺九，该现象更可能是核心役种实现疑点，而不是测试应无条件迁就实现。
+- 第 27 步尚未完成，后续应先核对并修复 `src/game/ron.ts` 中七对子与断幺九的组合役判断，再重新运行 `npm run test` 与 `npm run build`。
+
+后续注意事项：
+
+- 不要把第 27 步记录为完成，直到七对子/断幺九疑点处理完并由用户确认全量测试与构建通过。
+- 若修复七对子断幺九，应优先让 `evaluateWinningHand()` 对全为 2-8 索子的七对子同时返回 `tanyao` 与 `seven-pairs`，并保留无役标准形不可胡的测试。
+- 后续继续第 27 步时，应只做小批量读取和单文件编辑，避免一次性并行读写过多文件造成卡顿。

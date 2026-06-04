@@ -76,6 +76,37 @@ describe('基础有役判断', () => {
     expect(evaluateWinningHand(hand, { method: 'ron' }).yaku).toContain('tanyao')
   })
 
+  it('识别七对子役种', () => {
+    const hand = tileCopies([
+      'souzu-1', 'souzu-1',
+      'souzu-2', 'souzu-2',
+      'souzu-3', 'souzu-3',
+      'souzu-4', 'souzu-4',
+      'souzu-5', 'souzu-5',
+      'souzu-6', 'souzu-6',
+      'souzu-7', 'souzu-7',
+    ])
+
+    expect(evaluateWinningHand(hand, { method: 'ron' })).toEqual({
+      canWin: true,
+      yaku: ['seven-pairs'],
+    })
+  })
+
+  it('无役标准形不可胡', () => {
+    const hand = tileCopies([
+      'souzu-1', 'souzu-2', 'souzu-3',
+      'souzu-1', 'souzu-2', 'souzu-3',
+      'souzu-4', 'souzu-5', 'souzu-6',
+      'souzu-7', 'souzu-8', 'souzu-9',
+      'dragon-white', 'dragon-white',
+    ])
+
+    expect(evaluateWinningHand(hand, { method: 'ron' })).toEqual({
+      canWin: false,
+      yaku: [],
+    })
+  })
   it('识别副露白发中的碰或杠为役牌役种', () => {
     const hand = tileCopies([
       'souzu-1', 'souzu-2', 'souzu-3',

@@ -118,4 +118,26 @@ describe('drawTile', () => {
 
     expect(nextState).toBe(state)
   })
+
+  it('does not draw after a win has already ended the game', () => {
+    const state: GameState = {
+      ...createNewGameState(fixedRandomSource),
+      status: 'ended',
+      currentActor: null,
+      endResult: {
+        type: 'win',
+        winner: 'player',
+        loser: 'computer',
+        method: 'ron',
+        yaku: ['yakuhai'],
+        isHaitei: false,
+        isHoutei: false,
+      },
+      wall: createNewGameState(fixedRandomSource).wall.slice(0, 1),
+    }
+
+    const nextState = drawTile(state)
+
+    expect(nextState).toBe(state)
+  })
 })

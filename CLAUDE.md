@@ -69,7 +69,6 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
     file exists but is shorter than the provided offset
     4. 就说明 offset 过大。下一次应该把 offset 改到实际行数以内，而不是继续试类似的大数字。
     5. 如果只想追加文档内容，不用读末尾。
-    项目禁止 >> 追加，但可以用 Edit 把某个已知结尾段落替换为“原段落 + 新段落”。这通常比猜 offset 更稳。
 
     最核心的一句话：把 offset 当作行号，不当作字符位置；一旦工具提示文件总行数，就用这个总行数反推合理 offset。
 

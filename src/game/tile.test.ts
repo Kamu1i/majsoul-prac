@@ -57,6 +57,14 @@ describe('基础牌数据模型', () => {
     expect(compareTiles(oneSouzu, anotherOneSouzu)).toBe(0)
   })
 
+  it('不同牌不会被判断为同一种牌', () => {
+    expect(isSameTile(getTileById('souzu-1'), getTileById('souzu-2'))).toBe(false)
+  })
+
+  it('读取未知牌 ID 时会抛出错误', () => {
+    expect(() => getTileById('wind-east' as Parameters<typeof getTileById>[0])).toThrow('Unknown tile id: wind-east')
+  })
+
   it('排序后索子按一至九排列，字牌顺序为白发中', () => {
     const shuffled = [
       getTileById('dragon-red'),

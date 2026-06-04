@@ -45,5 +45,18 @@ describe('完整对局状态', () => {
 
     expect(state.status).not.toBe('ended')
     expect(state.endResult).toBeNull()
+    expect(state.scoreSettlement).toBeNull()
+  })
+
+  it('新对局初始化后全部实体牌数量守恒', () => {
+    const state = createNewGameState(fixedRandomSource)
+    const allTileKeys = [
+      ...state.player.hand,
+      ...state.computer.hand,
+      ...state.wall,
+    ].map((tileCopy) => `${tileCopy.tile.id}:${tileCopy.copyIndex}`)
+
+    expect(allTileKeys).toHaveLength(48)
+    expect(new Set(allTileKeys).size).toBe(48)
   })
 })

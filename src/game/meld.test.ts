@@ -207,6 +207,43 @@ describe('副露操作入口', () => {
     expect(declarePon(ponState, 'player').player.melds[0].type).toBe('pon')
     expect(declareOpenKan(kanState, 'player').player.melds[0].type).toBe('open-kan')
   })
+
+  it('没有最后弃牌时，吃碰明杠声明不会改变状态', () => {
+    const state = withActorHand(createNewGameState(fixedRandomSource), 'player', tileCopies([
+      'souzu-1', 'souzu-2', 'souzu-3',
+      'dragon-white', 'dragon-white', 'dragon-white',
+    ]))
+
+    expect(declareChi(state, 'player')).toBe(state)
+    expect(declarePon(state, 'player')).toBe(state)
+    expect(declareOpenKan(state, 'player')).toBe(state)
+  })
+
+  it('不能响应自己打出的牌进行副露', () => {
+    const playerDiscard = tileCopies(['souzu-3'])[0]
+    const state = withActorHand(
+      withDiscardState('player', tileCopies(['souzu-9']), playerDiscard),
+      'player',
+      tileCopies(['souzu-1', 'souzu-2', 'dragon-white']),
+    )
+
+    expect(getChiCandidates(state, 'player')).toEqual([])
+    expect(declareChi(state, 'player')).toBe(state)
+  })
+
+  it('用弃牌完成副露后会清空最后弃牌响应窗口', () => {
+    const playerHand = tileCopies(['souzu-2', 'souzu-3', 'dragon-white'])
+    const discardTileCopy = tileCopies(['souzu-1'])[0]
+    const state = withActorHand(
+      withDiscardState('computer', tileCopies(['dragon-red']), discardTileCopy),
+      'player',
+      playerHand,
+    )
+
+    const nextState = declareChi(state, 'player')
+
+    expect(nextState.lastDiscard).toBeNull()
+  })
 })
 
 describe('副露后的胡牌判断', () => {
