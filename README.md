@@ -19,3 +19,7 @@ UI界面优化调整，考虑增加胡牌特效
 ## vibecoding声明
 
 本项目纯粹是个人首次接触vibecoding练习所用，图一乐
+
+## 使用方法
+
+git clone下来之后拿npm在本地浏览器上运行`npm rum dev`
